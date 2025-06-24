@@ -1,0 +1,118 @@
+---
+title: "Analysis the Distributed Sequence"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message=FALSE}
+library(DistrSeqEst)
+library(pROC)
+```
+
+# Generate the data
+
+We simulate five datasets with different regression coefficients to represent heterogeneous data sources. Each dataset contains 10,000 observations with binary outcomes generated from a logistic model. These datasets will serve as the distributed sequences for subsequent analysis.
+```{r}
+b1 = c(-2,   2, 1, 1, 0)
+b2 = c(-2,   2, 1, 1, 0.5)
+b3 = c(-2,   2, 1, 1, 0.5, 0)
+b4 = c(-1.5, 2, 1, 1, 0)
+b5 = c(-2.5, 2, 1, 1, 1)
+
+gen_data = function(N, b){
+  p = length(b)
+  X = cbind(rep(1,N), matrix(rnorm(n=N*(p-1)), ncol = p-1))
+  Xb = X %*% b
+
+  p1 = 1 / (1+exp(-Xb))
+  Y = rbinom(n=N, size=1, prob=p1)
+
+  data = data.frame(X,Y)
+}
+
+set.seed(1)
+
+df1 = gen_data(10000,b1)
+df2 = gen_data(10000,b2)
+df3 = gen_data(10000,b3)
+df4 = gen_data(10000,b4)
+df5 = gen_data(10000,b5)
+
+```
+
+# Prepare
+
+To use `distr_seq_ana`, you need to create a list of data, interest terms (formula), nuisance terms (formula) if applicable (it can be `NULL`), weight of each sequence.
+
+We define the model components required for distributed sequential analysis. Each dataset is treated as a separate sequence. The interest formula specifies the covariates of scientific interest (`X2`, `X3`), while the `nuisance` terms include all other covariates. Equal weights are assigned to each sequence using `gamma`.
+```{r}
+df_list = gen_data_list(df1, df2, df3, df4, df5)
+
+interest = Y ~ X2 + X3 -1
+nuisance = replicate(5, Y ~ . -1) # using . in RHS should give Y in LHS
+gamma = rep(1/5,5) # weight of sequence
+```
+
+
+# Fit the Distributed Sequential Model
+
+We apply the `distr_seq_ana` function to perform distributed sequential estimation under the logistic regression framework. The model adaptively selects samples based on A-optimality, and continues until the stopping criterion is met or the maximum trial limit is reached. Verbose level 3 enables detailed progress reporting.
+```{r}
+set.seed(123)
+fit_all = distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
+                        init_N = 100, gamma = gamma, d1 = 0.15, d2 = 0.05, alpha = 0.05,
+                        family = binomial(),
+                        alternative = "two.sided", adaptive = "A.opt",
+                        verbose = 0, max_try = 1000)
+summary(fit_all)
+```
+
+
+# Analysis
+
+The output includes the total number of samples used from each sequence (`Nj`), a fitted AUC curve to evaluate model discrimination, and coefficient evolution paths. These help assess both sampling efficiency and parameter stability.
+```{r}
+print(fit_all)
+```
+
+```{r}
+summary(fit_all)
+```
+
+In addition to the aggregated model, you can inspect the fitted model for each individual sequence. This is useful for understanding local behavior or verifying consistency across sequences.
+```{r}
+print(fit_all$fits[[1]])
+```
+
+```{r}
+summary(fit_all$fits[[1]])
+```
+
+```{r, fig.width=6, fig.height=4, fig.align="center"}
+barplot(fit_all$Nj, main = "Samples per seq")
+
+plot(fit_all$auc_fit)
+auc_value <- auc(fit_all$auc_fit)
+legend("bottomright", legend = paste("AUC =", round(auc_value, 3)), col = "blue", lwd = 2)
+```
+
+## Coefficient path
+
+The coefficient path plots illustrate how estimates for `X2` and `X3` evolve as more data are adaptively included from the distributed sequences. Stabilization of these paths indicates convergence and robustness of the estimates.
+
+```{r, fig.width=6, fig.height=4, fig.align="center"}
+plot_coef(fit_all,"X2")
+plot_coef(fit_all,"X3")
+```
+
+

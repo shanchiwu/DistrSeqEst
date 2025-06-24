@@ -1,0 +1,31 @@
+Package: DistrSeqEst
+Title: Distributed Sequential Estimation Methods for Large-Scale Data
+Version: 0.2.0
+Authors@R: c(
+  person("Shan-Chi", "Wu", email = "594537@gmail.com", role = c("aut", "cre", "cph"),
+         comment = c(ORCID = "0009-0008-6760-4999")),
+  person("Yuan-Chin Ivan", "Chang", role = "aut")
+  )
+Description: 
+    Provides tools to conduct and integrate multiple adaptive sequential estimation procedures 
+    across distributed or parallel computing environments. The methodology is designed for 
+    large-scale data applications, combining confidence set estimation, beta-protection inference, 
+    and active learning principles. The implemented algorithms are based on the frameworks 
+    proposed by Chen et al. (2024, Canadian Journal of Statistics) and Wang & Chang (2017, 
+    Biometrika). For theoretical background, see <doi:10.1002/cjs.11762> and <doi:10.1093/biomet/asx028>.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: 
+    R (>= 4.0.0)
+Imports:
+    stats, MASS, progress, pROC, Rcpp, foreach, doParallel, doRNG
+Suggests: 
+    doMC, knitr, rmarkdown, testthat (>= 3.0.0)
+URL: https://github.com/shanchiwu/DistrSeqEst
+BugReports: https://github.com/shanchiwu/DistrSeqEst/issues
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+LinkingTo: 
+    Rcpp, RcppArmadillo

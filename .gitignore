@@ -1,0 +1,27 @@
+# R and RStudio
+.Rproj.user/
+.Rhistory
+.Rdata
+.RData
+.Ruserdata
+.DS_Store
+.Rbuildignore
+.Rprofile
+DistrSeqEst.Rproj
+DistrSeqEst.pdf
+
+# Quarto / knitr
+*.utf8.md
+*.knit.md
+.quarto/
+
+# Build artifacts
+*.tar.gz
+*.Rcheck/
+.Rinstignore
+inst/doc/
+doc/
+Meta/
+
+# OAuth tokens
+.httr-oauth
