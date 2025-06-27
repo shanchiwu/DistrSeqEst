@@ -41,9 +41,10 @@ fit <- seq_ana(
   interest  = Y ~ X1 + X2 + X3 - 1,
   nuisance  = Y ~ . - 1,
   init_N    = 100,
+  model     = "glm", 
+  fit_args  = list(family = binomial()),
   d1        = 0.3,
   alpha     = 0.05,
-  family    = binomial(),
   alternative = "two.sided",
   adaptive    = "D.opt",
   verbose     = 0,
@@ -55,6 +56,4 @@ summary(fit)
 
 For a demonstration of distributed sequential analysis with multiple datasets, see `inst/examples/example_distr_seq_est.R` or the vignette `vignettes/Analysis.Rmd`.
 
-## License
 
-DistrSeqEst is free software distributed under the terms of the GPL (&ge; 3). See `LICENSE.md` for the full license text.
