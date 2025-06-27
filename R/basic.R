@@ -25,7 +25,13 @@ inv <- function(A, tol = 1e-12) {
 
 
 
-get_weight <- function(X, beta, family) {
+get_weight <- function(X, beta, family = gaussian()) {
+  if (is.function(family)) family <- family()
+
+  if (identical(family$family, "gaussian")) {
+    return(rep(1, nrow(X)))
+  }
+
   # for more info., check `?stats::family`
   eta <- X %*% beta
   mu <- family$linkinv(eta)

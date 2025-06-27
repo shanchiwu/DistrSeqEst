@@ -5,6 +5,7 @@
 \title{Evaluate Stopping Criterion in Sequential Design}
 \usage{
 check_stopped(
+  model,
   k,
   N0,
   interest_term,
@@ -22,6 +23,8 @@ check_stopped(
 )
 }
 \arguments{
+\item{model}{Fitted model type. Current support \code{"lm"} and \code{"glm"}}
+
 \item{k}{Current total number of samples.}
 
 \item{N0}{Initial number of labeled samples.}
@@ -99,7 +102,7 @@ These rules are derived to ensure asymptotic validity (consistency and efficienc
 # Evaluate stopping rule for two-sided inference
 Sigma <- diag(1, 3)
 theta <- c(0.3, 0.2, 0.1)
-check_stopped(k = 100, N0 = 20, interest_term = 1:2, d1 = 0.1,
+check_stopped(model = "glm", k = 100, N0 = 20, interest_term = 1:2, d1 = 0.1,
               theta = theta, Sigma = Sigma, alternative = "two.sided", alpha = 0.05)
 }
 \references{

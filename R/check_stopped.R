@@ -9,6 +9,7 @@
 #' }
 #' If `d2` is specified, an additional stopping rule is checked for precision on AUC estimates.
 #'
+#' @param model Fitted model type. Current support \code{"lm"} and \code{"glm"}
 #' @param k Current total number of samples.
 #' @param N0 Initial number of labeled samples.
 #' @param interest_term A vector of indices indicating which components of the parameter vector \eqn{\theta} are of primary interest.
@@ -70,12 +71,12 @@
 #' # Evaluate stopping rule for two-sided inference
 #' Sigma <- diag(1, 3)
 #' theta <- c(0.3, 0.2, 0.1)
-#' check_stopped(k = 100, N0 = 20, interest_term = 1:2, d1 = 0.1,
+#' check_stopped(model = "glm", k = 100, N0 = 20, interest_term = 1:2, d1 = 0.1,
 #'               theta = theta, Sigma = Sigma, alternative = "two.sided", alpha = 0.05)
 #' @export
 
-check_stopped <- function(k, N0, interest_term, d1, d2 = NULL, theta, Sigma, s,
-                          gamma = 1, alpha, beta = NULL, auc_var = NULL,
+check_stopped <- function(model, k, N0, interest_term, d1, d2 = NULL, theta, Sigma,
+                          s, gamma = 1, alpha, beta = NULL, auc_var = NULL,
                           alpha2 = 0.05,
                           alternative = c("two.sided", "beta.protect")){
   p0 <- length(interest_term)
@@ -86,8 +87,12 @@ check_stopped <- function(k, N0, interest_term, d1, d2 = NULL, theta, Sigma, s,
     mu <- lam_max(k * Sigma_inv[interest_term,interest_term])
 
     a_tilde2 <- gamma * qchisq(1 - alpha, df = p0)
-    st1 <- d1^2 * k / a_tilde2
-    #st1 <- (d/a_tilde)^2 * k / (s^2 + 1/k) # For LM
+
+    st1 <- switch (model,
+                   "lm"  = d1^2 * k / a_tilde2 / (s^2 + 1/k),
+                   "glm" = d1^2 * k / a_tilde2,
+                   stop("Unknown model")
+    )
     cond1 <- mu <= st1
   }
 
@@ -96,7 +101,11 @@ check_stopped <- function(k, N0, interest_term, d1, d2 = NULL, theta, Sigma, s,
     tau <- 1 / (gamma*d1*(1e-7 + theta_hat))
     pivot <- qnorm((1-alpha)^(1/p0)) + qnorm(1-beta^(1/p0))
 
-    st1 <- N0 + (pivot*tau)^2
+    st1 <- switch (model,
+                   "lm"  = N0 + (pivot*tau)^2,
+                   "glm" = (pivot*tau)^2,
+                   stop("Unknown model")
+    )
     cond1 <- k >= st1
   }
   is.stop <- cond1

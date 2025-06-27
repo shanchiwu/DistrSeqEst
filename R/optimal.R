@@ -4,14 +4,14 @@
 #' Selects a data point from a set of unlabeled candidates based on specific optimal design criteria.
 #' Currently supports **D-optimality** and **A-optimality** criteria for sequential or adaptive experimental design.
 #'
+#' @param method A character string specifying the selection method (e.g., \code{"D.opt"}, \code{"A.opt"}, or \code{"random"}). Can also be a user-defined function.
 #' @param X A numeric matrix of covariates. Each row represents an observation and each column a variable.
 #' @param w A numeric vector of weights corresponding to each observation in \code{X}.
 #' @param labeled_id Integer vector specifying the indices of already selected (labeled) observations.
 #' @param unlabeled_id Integer vector specifying the indices of candidate (unlabeled) observations to evaluate.
-#'
+#' @param ... Additional arguments passed to the specific method function.
 #'
 #' @details
-#'
 #' This function implements optimal design selection under weighted settings, where each observation is associated with a weight matrix \code{W}.
 #'
 #' \strong{D-optimality} seeks to maximize the determinant of the Fisher information matrix:
@@ -54,15 +54,14 @@
 #'   w <- rep(1, 100)
 #'   labeled <- sample(1:100, 10)
 #'   unlabeled <- setdiff(1:100, labeled)
-#'   D_optimal(X, w, labeled, unlabeled)
-#'   A_optimal(X, w, labeled, unlabeled)
+#'   design_select.D.opt(X, w, labeled, unlabeled)
+#'   design_select.A.opt(X, w, labeled, unlabeled)
 #' }
 #'
 #' @name optimal
 #' @rdname optimal
 #' @export
-
-D_optimal <- function(X, w, labeled_id, unlabeled_id){
+design_select.D.opt <- function(method, X, w, labeled_id, unlabeled_id, ...){
   X_now <- X[labeled_id, , drop = FALSE]
   X_new <- X[unlabeled_id, , drop = FALSE]
 
@@ -82,11 +81,9 @@ D_optimal <- function(X, w, labeled_id, unlabeled_id){
 }
 
 
-
 #' @rdname optimal
 #' @export
-
-A_optimal <- function(X, w, labeled_id, unlabeled_id) {
+design_select.A.opt <- function(method, X, w, labeled_id, unlabeled_id, ...) {
   X_now <- X[labeled_id, , drop = FALSE]
   X_new <- X[unlabeled_id, , drop = FALSE]
 
@@ -99,3 +96,18 @@ A_optimal <- function(X, w, labeled_id, unlabeled_id) {
   return(unlabeled_id[best_idx])
 }
 
+
+#' @rdname optimal
+#' @export
+design_select.random <- function(method, X, w, labeled_id, unlabeled_id, ...) {
+  sample(unlabeled_id, 1)
+}
+
+
+#' @rdname optimal
+#' @export
+design_select.default <- function(method, X, w, labeled_id, unlabeled_id, ...) {
+  stop(sprintf("Unknown method '%s'. Please define method using S3 method: design_select.%s",
+               class(method)[1], class(method)[1]))
+
+}

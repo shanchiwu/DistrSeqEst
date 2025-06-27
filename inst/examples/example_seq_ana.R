@@ -17,7 +17,7 @@ if(interactive()){
   df = gen_data(10000,b)
 
   fit = seq_ana(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
-                init_N = 100, d1 = 0.3, alpha = 0.05,
+                init_N = 100, model = "glm", d1 = 0.3, alpha = 0.05,
                 family = binomial(),
                 alternative = "two.sided", adaptive = "D.opt",
                 verbose = 3, max_try = 1000)

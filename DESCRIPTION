@@ -1,6 +1,6 @@
 Package: DistrSeqEst
 Title: Distributed Sequential Estimation Methods for Large-Scale Data
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: c(
   person("Shan-Chi", "Wu", email = "594537@gmail.com", role = c("aut", "cre", "cph"),
          comment = c(ORCID = "0009-0008-6760-4999")),
@@ -15,6 +15,7 @@ Description:
     Biometrika). For theoretical background, see <doi:10.1002/cjs.11762> and <doi:10.1093/biomet/asx028>.
 License: GPL (>= 3)
 Encoding: UTF-8
+LazyData: false
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends: 

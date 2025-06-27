@@ -32,11 +32,12 @@ test_that("distr_seq_ana runs on diverse data_list", {
     interest = Y ~ X1 + X2 + X3 - 1,
     nuisance = nuisance,
     init_N = 50,
+    model = "glm",
+    fit_args = list(family = binomial()),
     gamma = gamma,
     d1 = 0.3,
     d2 = 0.05,
     alpha = 0.05,
-    family = binomial(),
     alternative = "two.sided",
     adaptive = "A.opt",
     verbose = 3,
@@ -53,6 +54,15 @@ test_that("doParallel backend works", {
   skip_on_ci()
   skip_if_not_installed("doParallel")
 
+  lib_ok <- tryCatch({
+    cl <- parallel::makeCluster(1)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    res <- parallel::clusterEvalQ(cl, requireNamespace("DistrSeqEst", quietly = TRUE))
+    isTRUE(res[[1]])
+  }, error = function(e) FALSE)
+
+  if (!lib_ok) skip("DistrSeqEst not found in worker library. Skip parallel test.")
+
   df_list <- readRDS(test_path("fixtures/df_list.rds"))
 
   interest <- Y ~ X1 + X2 + X3 - 1
@@ -66,12 +76,12 @@ test_that("doParallel backend works", {
 
   gamma <- rep(1 / 5, 5)
 
-  fit <- distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
-                       init_N = 100, gamma = gamma, d1 = 0.3, beta = 0.05,
-                       family = binomial(),
+  fit <- distr_seq_ana(data_list = df_list, interest = interest, nuisance = nuisance,
+                       init_N = 100, model = "glm", fit_args = list(family = binomial()),
+                       gamma = gamma, d1 = 0.3, beta = 0.05,
                        alternative = "beta.protect", adaptive = "random",
                        verbose = 0, max_try = 100,
-                       cores = parallel::detectCores() -1, backend = "doParallel")
+                       cores = 2, backend = "doParallel")
   expect_s3_class(fit, "distr.seq.fit")
 })
 
@@ -94,10 +104,10 @@ test_that("doMC backend works", {
   gamma <- rep(1 / 5, 5)
 
   fit <- distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
-                       init_N = 100, gamma = gamma, d1 = 0.3, beta = 0.05,
-                       family = binomial(),
+                       init_N = 100, model = "glm", fit_args = list(family = binomial()),
+                       gamma = gamma, d1 = 0.3, beta = 0.05,
                        alternative = "beta.protect", adaptive = "random",
                        verbose = 0, max_try = 100,
-                       cores = parallel::detectCores() -1, backend = "doMC")
+                       cores = 2, backend = "doMC")
   expect_s3_class(fit, "distr.seq.fit")
 })

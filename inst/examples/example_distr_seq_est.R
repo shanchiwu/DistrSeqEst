@@ -37,7 +37,7 @@ if(interactive()){
 
   fit_all = distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
                           init_N = 100, gamma = gamma, d1 = 0.3, alpha = 0.05,
-                          family = binomial(),
+                          model = "glm", fit_args = list(family = binomial()),
                           alternative = "two.sided", adaptive = "A.opt",
                           verbose = 3, max_try = 1000)
 }

@@ -12,9 +12,10 @@ test_that("seq_ana_parallel runs and returns seq.fit", {
     interest = y ~ x1 + x2 - 1,
     nuisance = ~ x3,
     init_N = 20,
+    model = "glm",
+    fit_args = list(family = binomial()),
     d1 = 0.3,
     d2 = 0.05,
-    family = binomial(),
     alternative = "two.sided",
     adaptive = "random",
     verbose = 3,
@@ -42,10 +43,10 @@ test_that("seq_ana_parallel errors when backend is mismatched", {
 test_that("seq_ana_parallel errors when beta is missing for beta.protect", {
   df <- data.frame(y = rbinom(100, 1, 0.5), x1 = rnorm(100), x2 = rnorm(100))
 
-  expect_error(seq_ana_parallel(data = df, interest = Y ~ x1 - 1,
-                                init_N = 50, d1 = 0.3,
-                                alternative = "beta.protect"),
-               "`beta` should be provided if `alternative` is 'beta.protect'")
+  expect_error(
+    seq_ana_parallel(data = df, interest = Y ~ x1 - 1,
+                     init_N = 50, d1 = 0.3, alternative = "beta.protect"),
+    "`beta` should be provided if `alternative` is 'beta.protect'")
 })
 
 
@@ -55,7 +56,7 @@ test_that("seq_ana_parallel errors on doMC in non-Unix", {
   df <- data.frame(y = rbinom(100, 1, 0.5), x1 = rnorm(100), x2 = rnorm(100))
   expect_error(
     seq_ana_parallel(df, y ~ x1 + x2 - 1, init_N = 20, d1 = 0.3,
-                     backend = "doMC", cores = parallel::detectCores() -1),
+                     backend = "doMC", cores = 2),
     "doMC is only available"
   )
 })
@@ -66,10 +67,11 @@ test_that("seq_ana_parallel registers doParallel backend", {
 
   df <- data.frame(y = rbinom(10000, 1, 0.5), x1 = rnorm(10000), x2 = rnorm(10000))
 
-  expect_silent(
+  expect_message(
     seq_ana_parallel(df, y ~ x1 + x2 - 1,
-                     init_N = 20, d1 = 0.3, family = binomial(),
-                     backend = "doParallel", cores = parallel::detectCores() -1, verbose = 0)
+                     init_N = 20, model = "glm", fit_args = list(family = binomial()), d1 = 0.3,
+                     backend = "doParallel", cores = 2, verbose = 2),
+    "Using backend: doParallel"
   )
 })
 
@@ -80,10 +82,11 @@ test_that("seq_ana_parallel registers doMC backend", {
 
   df <- data.frame(y = rbinom(10000, 1, 0.5), x1 = rnorm(10000), x2 = rnorm(10000))
 
-  expect_silent(
+  expect_message(
     seq_ana_parallel(df, y ~ x1 + x2 - 1,
-                     init_N = 20, d1 = 0.3, family = binomial(),
-                     backend = "doMC", cores = parallel::detectCores() -1, verbose = 0)
+                     init_N = 20, model = "glm", fit_args = list(family = binomial()),
+                     d1 = 0.3, backend = "doMC", cores = 2, verbose = 2),
+    "Using backend: doMC"
   )
 })
 
@@ -91,7 +94,7 @@ test_that("seq_ana_parallel errors on unknown backend", {
   df <- data.frame(y = rbinom(100, 1, 0.5), x1 = rnorm(100), x2 = rnorm(100))
   expect_error(
     seq_ana_parallel(df, y ~ x1 + x2 - 1, init_N = 20, d1 = 0.3,
-                     backend = "CUDA", cores = parallel::detectCores() -1),
+                     backend = "CUDA", cores = 2),
     "'arg' should be one of"
   )
 })

@@ -16,13 +16,14 @@ utils::globalVariables(c("j"))
 #' @param interest A \code{formula} specifying the variables of interest. These parameters are assumed to be common across datasets.
 #' @param nuisance An optional \code{list} of \code{formula} objects, each corresponding to the nuisance parameters specific to one dataset. If \code{NULL}, only the interest terms are modeled.
 #' @param init_N An \code{integer} specifying the initial sample size to be selected in each sequential procedure.
+#' @param model Fitted model type. Current support \code{"lm"} and \code{"glm"}
+#' @param fit_args Further arguments passed to \code{lm.fit} or \code{glm.fit}
 #' @param gamma A numeric \code{vector} indicating the weights for aggregating estimates across sequences. If \code{NULL}, default weights will be assigned based on the chosen \code{alternative}.
 #' @param d1 A positive \code{numeric} value specifying the required precision for the estimate of the interest parameter.
 #' @param d2 An optional \code{numeric} specifying the required precision for the AUC (Area Under Curve). Used only if applicable.
 #' @param alpha Type I error rate. Default is \code{0.05}.
 #' @param beta Required only if \code{alternative = "beta.protect"}. Specifies the minimal effect size to be protected under Type II error constraint.
 #' @param alpha2 Type I error level for the AUC-based stopping rule. Default is 0.05.
-#' @param family A \code{family} object specifying the error distribution and link function, e.g., \code{binomial()}, \code{gaussian()}, etc.
 #' @param alternative A \code{character} string specifying the hypothesis framework. Options are:
 #'   \describe{
 #'     \item{"two.sided"}{Symmetric hypothesis testing.}
@@ -47,7 +48,6 @@ utils::globalVariables(c("j"))
 #' @param backend A \code{character} string indicating which parallel backend to use.
 #'                Options are \code{"none"}, \code{"doParallel"}, or \code{"doMC"}.
 #'                When \code{cores > 1}, a valid backend must be specified and properly registered.
-
 #'
 #' @returns A \code{distr.seq.fit} object (list) with the following components:
 #' \describe{
@@ -79,13 +79,14 @@ distr_seq_ana = function(data_list,
                          interest, # formula of interest param.
                          nuisance = NULL, # list of formula of other param.
                          init_N,
+                         model = c("lm","glm"),
+                         fit_args = list(),
                          gamma = NULL, # weight of seq.
                          d1, # precision of theta
                          d2 = NULL, # precision of AUC
                          alpha = 0.05,
                          beta = NULL,
                          alpha2 = 0.05,
-                         family = gaussian,
                          alternative = c("two.sided", "beta.protect"),
                          adaptive = c('random', 'D.opt', 'A.opt'),
                          verbose = 1,
@@ -121,20 +122,6 @@ distr_seq_ana = function(data_list,
     gamma <- gamma * sqrt(sum(1 / gamma^2))
   }
 
-  # fit model for each sequence.
-  # fits <- vector("list", M)
-  # for (j in 1:M) {
-  #   if(verbose >=1) message(paste("Procedure", j, "start. "))
-  #
-  #   fits[[j]] <- seq_ana(data_list[[j]], interest = interest, nuisance = nuisance[[j]],
-  #                        family = family, init_N, gamma[j], d1 = d1, d2 = d2,
-  #                        alpha = alpha, beta = beta,
-  #                        alternative = alternative, adaptive = adaptive,
-  #                        verbose = verbose, max_try = max_try)
-  #
-  #   if(verbose >=1) message(paste("Procedure", j, "complete!.\n"))
-  # }
-
   if (cores > 1 && backend == "none") {
     stop("Requested multiple cores but did not register a parallel backend. Please set backend = 'doMC' or 'doParallel'.")
   }
@@ -165,15 +152,20 @@ distr_seq_ana = function(data_list,
     stop("Unsupported backend: ", backend)
   }
 
+  # fit model for each sequence.
   .combine_list <- function(x, y) append(x, list(y))
 
   fits <- foreach(j = 1:M, .combine = .combine_list, .init = list(),
+                  .export = c("seq_ana", "get_weight", "prepare_data",
+                              "initialize_selection", "check_stopped",
+                              "design_select_dispatch", "progress_controller"),
+                  .packages = "DistrSeqEst",
                   .errorhandling = "pass") %dorng% {
     if (verbose >= 1) message(sprintf("Procedure %d start.", j))
 
     res <- seq_ana(data_list[[j]], interest = interest, nuisance = nuisance[[j]],
-                   family = family, init_N = init_N, gamma = gamma[j], d1 = d1, d2 = d2,
-                   alpha = alpha, beta = beta,
+                   init_N = init_N, model = model, fit_args = fit_args, gamma = gamma[j],
+                   d1 = d1, d2 = d2, alpha = alpha, beta = beta,
                    alternative = alternative, adaptive = adaptive,
                    verbose = verbose, max_try = max_try)
 

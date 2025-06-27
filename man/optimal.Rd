@@ -2,15 +2,23 @@
 % Please edit documentation in R/optimal.R
 \name{optimal}
 \alias{optimal}
-\alias{D_optimal}
-\alias{A_optimal}
+\alias{design_select.D.opt}
+\alias{design_select.A.opt}
+\alias{design_select.random}
+\alias{design_select.default}
 \title{Optimal Design Selection Criteria}
 \usage{
-D_optimal(X, w, labeled_id, unlabeled_id)
+\method{design_select}{D.opt}(method, X, w, labeled_id, unlabeled_id, ...)
 
-A_optimal(X, w, labeled_id, unlabeled_id)
+\method{design_select}{A.opt}(method, X, w, labeled_id, unlabeled_id, ...)
+
+\method{design_select}{random}(method, X, w, labeled_id, unlabeled_id, ...)
+
+\method{design_select}{default}(method, X, w, labeled_id, unlabeled_id, ...)
 }
 \arguments{
+\item{method}{A character string specifying the selection method (e.g., \code{"D.opt"}, \code{"A.opt"}, or \code{"random"}). Can also be a user-defined function.}
+
 \item{X}{A numeric matrix of covariates. Each row represents an observation and each column a variable.}
 
 \item{w}{A numeric vector of weights corresponding to each observation in \code{X}.}
@@ -18,6 +26,8 @@ A_optimal(X, w, labeled_id, unlabeled_id)
 \item{labeled_id}{Integer vector specifying the indices of already selected (labeled) observations.}
 
 \item{unlabeled_id}{Integer vector specifying the indices of candidate (unlabeled) observations to evaluate.}
+
+\item{...}{Additional arguments passed to the specific method function.}
 }
 \value{
 An integer indicating the row index (relative to the input \code{X}) of the selected optimal data point.
@@ -65,8 +75,8 @@ The A-optimal trace computation is accelerated using C++ via Rcpp.
   w <- rep(1, 100)
   labeled <- sample(1:100, 10)
   unlabeled <- setdiff(1:100, labeled)
-  D_optimal(X, w, labeled, unlabeled)
-  A_optimal(X, w, labeled, unlabeled)
+  design_select.D.opt(X, w, labeled, unlabeled)
+  design_select.A.opt(X, w, labeled, unlabeled)
 }
 
 }

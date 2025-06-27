@@ -18,11 +18,12 @@ test_that("seq_ana runs correctly on simulated binomial data", {
     interest = Y ~ X1 + X2 + X3 - 1,
     nuisance = Y ~ . - 1,
     init_N = 50,
+    model = "glm",
+    fit_args = list(family = binomial()),
     d1 = 0.3,
     alpha = 0.05,
-    family = binomial(),
     alternative = "two.sided",
-    adaptive = "D.opt",
+    adaptive = "random",
     verbose = 0,
     max_try = 1000
   )

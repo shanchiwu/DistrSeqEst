@@ -138,3 +138,19 @@ print.summary.distr.seq.fit <- function(x, ...) {
   }
   invisible(x)
 }
+
+design_select_dispatch <- function(X, w, labeled_id, unlabeled_id, method = "default", ...) {
+  if (is.character(method)) {
+    method_obj <- structure(list(), class = method)  # 建立一個 dummy list 並附上 class
+    return(design_select(method_obj, X = X, w = w, labeled_id = labeled_id, unlabeled_id = unlabeled_id, ...))
+  } else if (is.function(method)) {
+    return(method(X, w, labeled_id, unlabeled_id, ...))
+  } else {
+    stop("Invalid method type. Must be character or function.")
+  }
+}
+
+
+design_select <- function(method = "default", X, w, labeled_id, unlabeled_id, ...) {
+  UseMethod("design_select", method)
+}

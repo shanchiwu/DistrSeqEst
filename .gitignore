@@ -22,6 +22,11 @@ DistrSeqEst.pdf
 inst/doc/
 doc/
 Meta/
+src/*.gcda
+src/*.gcno
 
 # OAuth tokens
 .httr-oauth
+inst/doc
+/doc/
+/Meta/

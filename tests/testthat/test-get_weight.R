@@ -127,12 +127,3 @@ test_that("get_weight returns correct Gamma working weights (log link)", {
   expect_equal(w, expected)
 })
 
-
-#-------- Error Case --------
-test_that("get_weight errors when X and beta are incompatible", {
-  X <- matrix(1:6, ncol = 2)
-  beta <- 1 # incompatible shape
-  fam <- gaussian()
-
-  expect_error(get_weight(X, beta, fam), "non-conformable arguments")
-})

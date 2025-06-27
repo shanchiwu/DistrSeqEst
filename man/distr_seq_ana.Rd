@@ -9,13 +9,14 @@ distr_seq_ana(
   interest,
   nuisance = NULL,
   init_N,
+  model = c("lm", "glm"),
+  fit_args = list(),
   gamma = NULL,
   d1,
   d2 = NULL,
   alpha = 0.05,
   beta = NULL,
   alpha2 = 0.05,
-  family = gaussian,
   alternative = c("two.sided", "beta.protect"),
   adaptive = c("random", "D.opt", "A.opt"),
   verbose = 1,
@@ -33,6 +34,10 @@ distr_seq_ana(
 
 \item{init_N}{An \code{integer} specifying the initial sample size to be selected in each sequential procedure.}
 
+\item{model}{Fitted model type. Current support \code{"lm"} and \code{"glm"}}
+
+\item{fit_args}{Further arguments passed to \code{lm.fit} or \code{glm.fit}}
+
 \item{gamma}{A numeric \code{vector} indicating the weights for aggregating estimates across sequences. If \code{NULL}, default weights will be assigned based on the chosen \code{alternative}.}
 
 \item{d1}{A positive \code{numeric} value specifying the required precision for the estimate of the interest parameter.}
@@ -44,8 +49,6 @@ distr_seq_ana(
 \item{beta}{Required only if \code{alternative = "beta.protect"}. Specifies the minimal effect size to be protected under Type II error constraint.}
 
 \item{alpha2}{Type I error level for the AUC-based stopping rule. Default is 0.05.}
-
-\item{family}{A \code{family} object specifying the error distribution and link function, e.g., \code{binomial()}, \code{gaussian()}, etc.}
 
 \item{alternative}{A \code{character} string specifying the hypothesis framework. Options are:
 \describe{
@@ -145,7 +148,7 @@ if(interactive()){
 
   fit_all = distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
                           init_N = 100, gamma = gamma, d1 = 0.3, alpha = 0.05,
-                          family = binomial(),
+                          model = "glm", fit_args = list(family = binomial()),
                           alternative = "two.sided", adaptive = "A.opt",
                           verbose = 3, max_try = 1000)
 }

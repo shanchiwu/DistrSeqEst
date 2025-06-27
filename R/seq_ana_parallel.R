@@ -8,8 +8,7 @@ utils::globalVariables(c("group"))
 #' Performs adaptive sequential estimation for generalized linear models under various sampling strategies.
 #' This parallelized version evaluates candidate data points concurrently using multiple cores,
 #' significantly accelerating computation for large datasets. The procedure begins with an initial subsample
-#' and sequentially augments it based on a specified optimality criterion (e.g., D-optimality).
-#' The process stops once the target estimation precision is achieved.
+#' and the process stops once the target estimation precision is achieved.
 #'
 #' This function is particularly useful when data are abundant but computational or labeling cost constraints
 #' make full estimation impractical. Parallelism allows for substantial speed-ups in evaluating
@@ -19,13 +18,14 @@ utils::globalVariables(c("group"))
 #' @param interest A \code{formula} specifying the variables of interest. These parameters are assumed to be common across datasets.
 #' @param nuisance An optional \code{list} of \code{formula} objects, each corresponding to the nuisance parameters specific to one dataset. If \code{NULL}, only the interest terms are modeled.
 #' @param init_N An \code{integer} specifying the initial sample size to be selected in each sequential procedure.
+#' @param model Fitted model type. Current support \code{"lm"} and \code{"glm"}
+#' @param fit_args Further arguments passed to \code{lm.fit} or \code{glm.fit}
 #' @param gamma A numeric \code{vector} indicating the weights for aggregating estimates across sequences. If \code{NULL}, default weights will be assigned based on the chosen \code{alternative}.
 #' @param d1 A positive \code{numeric} value specifying the required precision for the estimate of the interest parameter.
 #' @param d2 An optional \code{numeric} specifying the required precision for the AUC (Area Under Curve). Used only if applicable.
 #' @param alpha Type I error rate. Default is \code{0.05}.
 #' @param beta Required only if \code{alternative = "beta.protect"}. Specifies the minimal effect size to be protected under Type II error constraint.
 #' @param alpha2 Type I error level for the AUC-based stopping rule. Default is 0.05.
-#' @param family A \code{family} object specifying the error distribution and link function, e.g., \code{binomial()}, \code{gaussian()}, etc.
 #' @param alternative A \code{character} string specifying the hypothesis framework. Options are:
 #'   \describe{
 #'     \item{"two.sided"}{Symmetric hypothesis testing.}
@@ -45,8 +45,9 @@ utils::globalVariables(c("group"))
 #' @param backend A \code{character} string indicating which parallel backend to use.
 #'                Options are \code{"none"}, \code{"doParallel"}, or \code{"doMC"}.
 #'                When \code{cores > 1}, a valid backend must be specified and properly registered.
+#' @param keep Default is \code{FALSE}.
 #'
-#' @returns A \code{seq.fit} object (list) with the following components:
+#' @returns A \code{seq.fit} object with the following components:
 #' \describe{
 #'   \item{fit}{Final fitted model (from \code{glm.fit}).}
 #'   \item{coef_path}{A data frame recording the sequence of coefficient estimates at each iteration.}
@@ -56,31 +57,38 @@ utils::globalVariables(c("group"))
 #'   \item{labeled_id}{Indices of selected samples.}
 #'   \item{interest_term}{Names of variables of interest.}
 #'   \item{auc_fit}{An object of class \code{"roc"} (from \pkg{pROC}), or \code{NULL} if not applicable.}
+#'   \item{alternative}{A \code{character} string specifying the hypothesis framework.}
+#'   \item{adaptive}{A \code{character} string specifying the sampling strategy.}
 #'   \item{time}{Computation time as a \code{difftime} object.}
 #' }
+#' If \code{keep = TRUE}, other parallel compute result will also save and return a list of \code{seq.fit} object.
 #'
-#' #' @details
+#' @details
 #' Internally, the function uses the \pkg{foreach} framework to parallelize candidate evaluation steps.
 #' When \code{cores > 1}, a valid parallel backend must be selected and initialized via the \code{backend} argument.
 #' The function supports both \pkg{doParallel} and \pkg{doMC} (Unix-only) backends.
 #' If \code{backend = "none"}, computation defaults to single-core execution using \code{foreach::registerDoSEQ()}.
+#'
+#' @example inst/examples/example_seq_ana_parallel.R
 #'
 #' @seealso [seq_ana()]
 #'
 #' @export
 seq_ana_parallel = function(data, interest, nuisance = NULL,
                             init_N,
+                            model = c("lm","glm"),
+                            fit_args = list(),
                             gamma = 1, # weight of seq.
                             d1, # precision of theta
                             d2 = NULL, # precision of AUC
                             alpha = 0.05,
                             beta = NULL,
                             alpha2 = 0.05,
-                            family = gaussian,
                             alternative = c("two.sided", "beta.protect"),
                             adaptive = c('random'),
                             verbose = 1, max_try = 1000,
-                            cores = 1, backend = c("none", "doParallel", "doMC")){
+                            cores = 1, backend = c("none", "doParallel", "doMC"),
+                            keep = FALSE){
   t_start <- Sys.time()
 
   adaptive = match.arg(adaptive)
@@ -136,7 +144,11 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
       Nj <- length(labeled_now)
       X_fit <- X[labeled_now,]
       y_fit <- y[labeled_now]
-      fit <- glm.fit(x = X_fit, y = y_fit, family = family)
+      fit_input <- c(list(x = X_fit, y = y_fit), fit_args)
+      fit <- switch(model,
+                    "lm"  = do.call(lm.fit, fit_input),
+                    "glm" = do.call(glm.fit, fit_input)
+                    )
 
       # Calculate weight and Sigma matrix
       beta_est <- coef(fit)
@@ -155,7 +167,7 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
       }
 
       # Check stopping criteria
-      stopped <- check_stopped(Nj, init_N, interest_term, d1, d2, beta_est, Sigma, s,
+      stopped <- check_stopped(model, Nj, init_N, interest_term, d1, d2, beta_est, Sigma, s,
                                gamma, alpha, beta, auc_var, alpha2, alternative = alternative)
 
       if (stopped$is.stop){
@@ -164,6 +176,7 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
         out <- list(fit = fit, coef_path = as.data.frame(do.call(rbind, coef_path)),
                     Nj = Nj, mu = stopped$mu, Sigma = Sigma,
                     labeled_id = labeled_now, interest_term = interest_term, auc_fit = auc_fit,
+                    alternative = alternative, adaptive = adaptive,
                     time = difftime(t_end, t_start, units="secs"))
         class(out) <- "seq.fit"
 
@@ -175,5 +188,10 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
 
   stopImplicitCluster()
 
-  return(results)
+  if(keep){
+    return(results)
+  } else{
+    min_seq <- which.min(sapply(results, function(r) r$Nj))
+    return(results[[min_seq]])
+  }
 }

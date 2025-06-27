@@ -9,13 +9,14 @@ seq_ana(
   interest,
   nuisance = NULL,
   init_N,
+  model = c("lm", "glm"),
+  fit_args = list(),
   gamma = 1,
   d1,
   d2 = NULL,
   alpha = 0.05,
   beta = NULL,
   alpha2 = 0.05,
-  family = gaussian,
   alternative = c("two.sided", "beta.protect"),
   adaptive = c("random", "D.opt", "A.opt"),
   verbose = 1,
@@ -31,6 +32,10 @@ seq_ana(
 
 \item{init_N}{An \code{integer} specifying the initial sample size to be selected in each sequential procedure.}
 
+\item{model}{Fitted model type. Current support \code{"lm"} and \code{"glm"}}
+
+\item{fit_args}{Further arguments passed to \code{lm.fit} or \code{glm.fit}}
+
 \item{gamma}{A numeric \code{vector} indicating the weights for aggregating estimates across sequences. If \code{NULL}, default weights will be assigned based on the chosen \code{alternative}.}
 
 \item{d1}{A positive \code{numeric} value specifying the required precision for the estimate of the interest parameter.}
@@ -42,8 +47,6 @@ seq_ana(
 \item{beta}{Required only if \code{alternative = "beta.protect"}. Specifies the minimal effect size to be protected under Type II error constraint.}
 
 \item{alpha2}{Type I error level for the AUC-based stopping rule. Default is 0.05.}
-
-\item{family}{A \code{family} object specifying the error distribution and link function, e.g., \code{binomial()}, \code{gaussian()}, etc.}
 
 \item{alternative}{A \code{character} string specifying the hypothesis framework. Options are:
 \describe{
@@ -71,7 +74,7 @@ seq_ana(
 \value{
 A \code{seq.fit} object (list) with the following components:
 \describe{
-\item{fit}{Final fitted model (from \code{glm.fit}).}
+\item{fit}{Final fitted model (from \code{lm.fit} or \code{glm.fit}).}
 \item{coef_path}{A data frame recording the sequence of coefficient estimates at each iteration.}
 \item{Nj}{Final sample size used.}
 \item{mu}{A numeric value representing the maximum eigenvalue of the (weighted) covariance matrix of interest terms, used for the stopping criterion under \code{"two.sided"} hypothesis.}
@@ -79,6 +82,8 @@ A \code{seq.fit} object (list) with the following components:
 \item{labeled_id}{Indices of selected samples.}
 \item{interest_term}{Names of variables of interest.}
 \item{auc_fit}{An object of class \code{"roc"} (from \pkg{pROC}), or \code{NULL} if not applicable.}
+\item{alternative}{A \code{character} string specifying the hypothesis framework.}
+\item{adaptive}{A \code{character} string specifying the sampling strategy.}
 \item{time}{Computation time as a \code{difftime} object.}
 }
 }
@@ -111,7 +116,7 @@ if(interactive()){
   df = gen_data(10000,b)
 
   fit = seq_ana(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
-                init_N = 100, d1 = 0.3, alpha = 0.05,
+                init_N = 100, model = "glm", d1 = 0.3, alpha = 0.05,
                 family = binomial(),
                 alternative = "two.sided", adaptive = "D.opt",
                 verbose = 3, max_try = 1000)

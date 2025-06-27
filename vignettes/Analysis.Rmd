@@ -2,7 +2,7 @@
 title: "Analysis the Distributed Sequence"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Analysis}
+  %\VignetteIndexEntry{Analysis the Distributed Sequence}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -71,7 +71,7 @@ We apply the `distr_seq_ana` function to perform distributed sequential estimati
 set.seed(123)
 fit_all = distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
                         init_N = 100, gamma = gamma, d1 = 0.15, d2 = 0.05, alpha = 0.05,
-                        family = binomial(),
+                        model = "glm", fit_args = list(family = binomial()),
                         alternative = "two.sided", adaptive = "A.opt",
                         verbose = 0, max_try = 1000)
 summary(fit_all)

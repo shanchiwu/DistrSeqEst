@@ -9,19 +9,21 @@ seq_ana_parallel(
   interest,
   nuisance = NULL,
   init_N,
+  model = c("lm", "glm"),
+  fit_args = list(),
   gamma = 1,
   d1,
   d2 = NULL,
   alpha = 0.05,
   beta = NULL,
   alpha2 = 0.05,
-  family = gaussian,
   alternative = c("two.sided", "beta.protect"),
   adaptive = c("random"),
   verbose = 1,
   max_try = 1000,
   cores = 1,
-  backend = c("none", "doParallel", "doMC")
+  backend = c("none", "doParallel", "doMC"),
+  keep = FALSE
 )
 }
 \arguments{
@@ -32,6 +34,10 @@ seq_ana_parallel(
 \item{nuisance}{An optional \code{list} of \code{formula} objects, each corresponding to the nuisance parameters specific to one dataset. If \code{NULL}, only the interest terms are modeled.}
 
 \item{init_N}{An \code{integer} specifying the initial sample size to be selected in each sequential procedure.}
+
+\item{model}{Fitted model type. Current support \code{"lm"} and \code{"glm"}}
+
+\item{fit_args}{Further arguments passed to \code{lm.fit} or \code{glm.fit}}
 
 \item{gamma}{A numeric \code{vector} indicating the weights for aggregating estimates across sequences. If \code{NULL}, default weights will be assigned based on the chosen \code{alternative}.}
 
@@ -44,8 +50,6 @@ seq_ana_parallel(
 \item{beta}{Required only if \code{alternative = "beta.protect"}. Specifies the minimal effect size to be protected under Type II error constraint.}
 
 \item{alpha2}{Type I error level for the AUC-based stopping rule. Default is 0.05.}
-
-\item{family}{A \code{family} object specifying the error distribution and link function, e.g., \code{binomial()}, \code{gaussian()}, etc.}
 
 \item{alternative}{A \code{character} string specifying the hypothesis framework. Options are:
 \describe{
@@ -71,9 +75,11 @@ If set to 1, computation proceeds sequentially.}
 \item{backend}{A \code{character} string indicating which parallel backend to use.
 Options are \code{"none"}, \code{"doParallel"}, or \code{"doMC"}.
 When \code{cores > 1}, a valid backend must be specified and properly registered.}
+
+\item{keep}{Default is \code{FALSE}.}
 }
 \value{
-A \code{seq.fit} object (list) with the following components:
+A \code{seq.fit} object with the following components:
 \describe{
 \item{fit}{Final fitted model (from \code{glm.fit}).}
 \item{coef_path}{A data frame recording the sequence of coefficient estimates at each iteration.}
@@ -83,25 +89,54 @@ A \code{seq.fit} object (list) with the following components:
 \item{labeled_id}{Indices of selected samples.}
 \item{interest_term}{Names of variables of interest.}
 \item{auc_fit}{An object of class \code{"roc"} (from \pkg{pROC}), or \code{NULL} if not applicable.}
+\item{alternative}{A \code{character} string specifying the hypothesis framework.}
+\item{adaptive}{A \code{character} string specifying the sampling strategy.}
 \item{time}{Computation time as a \code{difftime} object.}
 }
-
-#' @details
-Internally, the function uses the \pkg{foreach} framework to parallelize candidate evaluation steps.
-When \code{cores > 1}, a valid parallel backend must be selected and initialized via the \code{backend} argument.
-The function supports both \pkg{doParallel} and \pkg{doMC} (Unix-only) backends.
-If \code{backend = "none"}, computation defaults to single-core execution using \code{foreach::registerDoSEQ()}.
+If \code{keep = TRUE}, other parallel compute result will also save and return a list of \code{seq.fit} object.
 }
 \description{
 Performs adaptive sequential estimation for generalized linear models under various sampling strategies.
 This parallelized version evaluates candidate data points concurrently using multiple cores,
 significantly accelerating computation for large datasets. The procedure begins with an initial subsample
-and sequentially augments it based on a specified optimality criterion (e.g., D-optimality).
-The process stops once the target estimation precision is achieved.
+and the process stops once the target estimation precision is achieved.
 
 This function is particularly useful when data are abundant but computational or labeling cost constraints
 make full estimation impractical. Parallelism allows for substantial speed-ups in evaluating
 candidate points at each step, especially in large-scale settings.
+}
+\details{
+Internally, the function uses the \pkg{foreach} framework to parallelize candidate evaluation steps.
+When \code{cores > 1}, a valid parallel backend must be selected and initialized via the \code{backend} argument.
+The function supports both \pkg{doParallel} and \pkg{doMC} (Unix-only) backends.
+If \code{backend = "none"}, computation defaults to single-core execution using \code{foreach::registerDoSEQ()}.
+}
+\examples{
+b = c(-2,2,1,1,0)
+
+gen_data = function(N, b){
+  p = length(b)
+  X = cbind(rep(1,N), matrix(rnorm(n=N*(p-1)), ncol = p-1))
+  Xb = X \%*\% b
+
+  p1 = 1 / (1+exp(-Xb))
+  Y = rbinom(n=N, size=1, prob=p1)
+
+  data = data.frame(X,Y)
+}
+
+set.seed(1)
+
+if(interactive()){
+  df = gen_data(100000,b)
+
+  fit = seq_ana_parallel(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
+                         init_N = 100, d1 = 0.2, alpha = 0.05,
+                         family = binomial(),
+                         alternative = "two.sided", adaptive = "random",
+                         verbose = 3, max_try = 1000, cores = 8, backend = "doParallel",
+                         keep = T)
+}
 }
 \seealso{
 \code{\link[=seq_ana]{seq_ana()}}
