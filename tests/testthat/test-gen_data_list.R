@@ -13,7 +13,7 @@ test_that("Single data.frame with split_col splits correctly", {
   result <- gen_data_list(df, split_col = "group")
   expect_s3_class(result, "data_list")
   expect_equal(length(result), 2)
-  expect_equal(result$A, df[c(1,3), "value", drop = FALSE])
+  expect_equal(result$A, df[c(1, 3), "value", drop = FALSE])
   expect_equal(result$B, df[2, "value", drop = FALSE])
 })
 

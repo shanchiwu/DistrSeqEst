@@ -46,4 +46,3 @@ test_that("lam_max fails on NA matrix", {
   A <- matrix(c(1, NA, 3, 4), 2)
   expect_error(lam_max(A))
 })
-

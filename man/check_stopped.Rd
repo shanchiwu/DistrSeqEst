@@ -106,7 +106,7 @@ check_stopped(model = "glm", k = 100, N0 = 20, interest_term = 1:2, d1 = 0.1,
               theta = theta, Sigma = Sigma, alternative = "two.sided", alpha = 0.05)
 }
 \references{
-Chen, Z., Wang, Z., & Chang, Y.-C. I. (2024). Distributed sequential estimation procedures. \emph{Canadian Journal of Statistics}, 52(1), 271–290. https://doi.org/10.1002/cjs.11762
+\insertRef{chen2020sequential}{DistrSeqEst}
 
-Wang, Z., & Chang, Y.-C. I. (2017). Integration of distributed sequential procedures for massive-data analysis. \emph{Biometrika}, 103(1), 1–21. https://doi.org/10.1093/biomet/asx028
+\insertRef{chen2024distributed}{DistrSeqEst}
 }

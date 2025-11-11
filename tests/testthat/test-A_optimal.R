@@ -1,8 +1,8 @@
 test_that("A.opt selects more informative point", {
-  X <- matrix(c(1,0,   # labeled
-                0,1,
-                10,0,  # unlabeled A
-                0,1),  # unlabeled B
+  X <- matrix(c(1, 0,   # labeled
+                0, 1,
+                10, 0,  # unlabeled A
+                0, 1),  # unlabeled B
               ncol = 2, byrow = TRUE)
   w <- rep(1, 4)
   labeled_id <- 1:2

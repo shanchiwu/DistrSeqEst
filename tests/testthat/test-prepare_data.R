@@ -23,7 +23,7 @@ test_that("Interest and nuisance variables are combined properly", {
 
 test_that("Duplicated variables in both interest and nuisance are handled", {
   expect_message(
-    result <- prepare_data(df, interest = y ~ x1 + x2 -1, nuisance = ~ x2 + x3, verbose = 1),
+    result <- prepare_data(df, interest = y ~ x1 + x2 - 1, nuisance = ~ x2 + x3, verbose = 1),
     "appear in both interest and nuisance"
   )
   expect_true("x3" %in% colnames(result$X))  # exclude x2
@@ -47,24 +47,24 @@ test_that("Works with no intercept in interest", {
 
 test_that("Verbose output appears at level >= 3", {
   expect_message(
-    prepare_data(df, interest = y ~ x1, nuisance = ~ -1 + x2, verbose = 3),
+    prepare_data(df, interest = y ~ x1, nuisance = ~ - 1 + x2, verbose = 3),
     "Data Dimension:"
   )
 })
 
 test_that("Nuisance: use dot (.) selects all except response", {
-  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 -1, nuisance = y ~ . -1, verbose = 0)
+  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 - 1, nuisance = y ~ . - 1, verbose = 0)
   expect_true(all(setdiff(names(df), "y") %in% colnames(result$X)))
 })
 
 test_that("Nuisance: interaction and I() terms are handled", {
-  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 -1, nuisance = ~ I(x2^2) + x2:x3 -1)
+  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 - 1, nuisance = ~ I(x2^2) + x2:x3 - 1)
   expect_true(any(grepl("I\\(x2\\^2\\)", colnames(result$X))))
   expect_true(any(grepl("x2:x3", colnames(result$X))))
 })
 
 test_that("Nuisance: log() and poly() terms are supported", {
-  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 -1, nuisance = ~ log(x3^2) + poly(x4, 2) -1)
+  result <- prepare_data(df, interest = y ~ x1 + x2 + x3 - 1, nuisance = ~ log(x3^2) + poly(x4, 2) - 1)
   expect_true(any(grepl("log\\(x3\\^2\\)", colnames(result$X))))
   expect_true(any(grepl("poly\\(x4", colnames(result$X))))
 })

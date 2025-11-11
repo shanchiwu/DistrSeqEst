@@ -18,11 +18,11 @@ test_that("distr_seq_ana runs on diverse data_list", {
   df_list <- readRDS(test_path("fixtures/df_list.rds"))
 
   nuisance <- list(
-    Y ~ . -1,
+    Y ~ . - 1,
     NULL,
-    ~ X4 + X5 + X6 -1,
-    ~ I(X2^2) + X4:X5 -1,
-    ~ log(X3^2) + poly(X4, 2) -1
+    ~ X4 + X5 + X6 - 1,
+    ~ I(X2^2) + X4:X5 - 1,
+    ~ log(X3^2) + poly(X4, 2) - 1
   )
 
   gamma <- rep(1 / 5, 5)
@@ -67,11 +67,11 @@ test_that("doParallel backend works", {
 
   interest <- Y ~ X1 + X2 + X3 - 1
   nuisance <- list(
-    Y ~ . -1,
+    Y ~ . - 1,
     NULL,
-    ~ X4 + X5 + X6 -1,
-    ~ I(X2^2) + X4:X5 -1,
-    ~ log(X3^2) + poly(X4, 2) -1
+    ~ X4 + X5 + X6 - 1,
+    ~ I(X2^2) + X4:X5 - 1,
+    ~ log(X3^2) + poly(X4, 2) - 1
   )
 
   gamma <- rep(1 / 5, 5)
@@ -94,11 +94,11 @@ test_that("doMC backend works", {
 
   interest <- Y ~ X1 + X2 + X3 - 1
   nuisance <- list(
-    Y ~ . -1,
+    Y ~ . - 1,
     NULL,
-    ~ X4 + X5 + X6 -1,
-    ~ I(X2^2) + X4:X5 -1,
-    ~ log(X3^2) + poly(X4, 2) -1
+    ~ X4 + X5 + X6 - 1,
+    ~ I(X2^2) + X4:X5 - 1,
+    ~ log(X3^2) + poly(X4, 2) - 1
   )
 
   gamma <- rep(1 / 5, 5)

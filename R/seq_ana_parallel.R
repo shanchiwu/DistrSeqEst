@@ -74,32 +74,32 @@ utils::globalVariables(c("group"))
 #' @seealso [seq_ana()]
 #'
 #' @export
-seq_ana_parallel = function(data, interest, nuisance = NULL,
-                            init_N,
-                            model = c("lm","glm"),
-                            fit_args = list(),
-                            gamma = 1, # weight of seq.
-                            d1, # precision of theta
-                            d2 = NULL, # precision of AUC
-                            alpha = 0.05,
-                            beta = NULL,
-                            alpha2 = 0.05,
-                            alternative = c("two.sided", "beta.protect"),
-                            adaptive = c('random'),
-                            verbose = 1, max_try = 1000,
-                            cores = 1, backend = c("none", "doParallel", "doMC"),
-                            keep = FALSE){
+seq_ana_parallel <- function(data, interest, nuisance = NULL,
+                             init_N,
+                             model = c("lm", "glm"),
+                             fit_args = list(),
+                             gamma = 1, # weight of seq.
+                             d1, # precision of theta
+                             d2 = NULL, # precision of AUC
+                             alpha = 0.05,
+                             beta = NULL,
+                             alpha2 = 0.05,
+                             alternative = c("two.sided", "beta.protect"),
+                             adaptive = c("random"),
+                             verbose = 1, max_try = 1000,
+                             cores = 1, backend = c("none", "doParallel", "doMC"),
+                             keep = FALSE) {
   t_start <- Sys.time()
 
-  adaptive = match.arg(adaptive)
-  alternative = match.arg(alternative)
+  adaptive <- match.arg(adaptive)
+  alternative <- match.arg(alternative)
   backend <- match.arg(backend)
 
   if (cores > 1 && backend == "none") {
     stop("Requested multiple cores but did not register a parallel backend. Please set backend = 'doMC' or 'doParallel'.")
   }
 
-  if(backend == "none"){
+  if (backend == "none") {
     if (verbose >= 2) message("Using backend: doSEQ with 1 cores.")
     foreach::registerDoSEQ()
 
@@ -118,7 +118,7 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
     stop("Unsupported backend: ", backend)
   }
 
-  if(alternative == "beta.protect" && is.null(beta)){
+  if (alternative == "beta.protect" && is.null(beta)) {
     stop("`beta` should be provided if `alternative` is 'beta.protect'.")
   }
 
@@ -142,13 +142,13 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
     for (j in group) {
       labeled_now <- c(labeled_id, unlabeled_id[1:j])
       Nj <- length(labeled_now)
-      X_fit <- X[labeled_now,]
+      X_fit <- X[labeled_now, ]
       y_fit <- y[labeled_now]
       fit_input <- c(list(x = X_fit, y = y_fit), fit_args)
       fit <- switch(model,
-                    "lm"  = do.call(lm.fit, fit_input),
-                    "glm" = do.call(glm.fit, fit_input)
-                    )
+        "lm"  = do.call(lm.fit, fit_input),
+        "glm" = do.call(glm.fit, fit_input)
+      )
 
       # Calculate weight and Sigma matrix
       beta_est <- coef(fit)
@@ -160,8 +160,8 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
       # Calculate AUC for logistic regression
       auc_fit <- NULL
       auc_var <- NULL
-      if(!is.null(d2)){
-        auc_fit <- pROC::roc(y_fit, fit$fitted.values, quiet=T)
+      if (!is.null(d2)) {
+        auc_fit <- pROC::roc(y_fit, fit$fitted.values, quiet = TRUE)
         auc_hat <- pROC::auc(auc_fit)
         auc_var <- pROC::var(auc_fit)
       }
@@ -170,14 +170,14 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
       stopped <- check_stopped(model, Nj, init_N, interest_term, d1, d2, beta_est, Sigma, s,
                                gamma, alpha, beta, auc_var, alpha2, alternative = alternative)
 
-      if (stopped$is.stop){
+      if (stopped$is.stop) {
         t_end <- Sys.time()
 
         out <- list(fit = fit, coef_path = as.data.frame(do.call(rbind, coef_path)),
                     Nj = Nj, mu = stopped$mu, Sigma = Sigma,
                     labeled_id = labeled_now, interest_term = interest_term, auc_fit = auc_fit,
                     alternative = alternative, adaptive = adaptive,
-                    time = difftime(t_end, t_start, units="secs"))
+                    time = difftime(t_end, t_start, units = "secs"))
         class(out) <- "seq.fit"
 
         return(out)
@@ -188,9 +188,9 @@ seq_ana_parallel = function(data, interest, nuisance = NULL,
 
   stopImplicitCluster()
 
-  if(keep){
+  if (keep) {
     return(results)
-  } else{
+  } else {
     min_seq <- which.min(sapply(results, function(r) r$Nj))
     return(results[[min_seq]])
   }

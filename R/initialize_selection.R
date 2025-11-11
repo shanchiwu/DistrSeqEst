@@ -10,7 +10,7 @@ initialize_selection <- function(X, init_N, max_try = 1000, verbose = 1) {
     # Check if X is full rank
     if (qr(X_init)$rank == p) {
       unlabeled_id <- setdiff(index, labeled_id)
-      if(verbose >=1) message("Initialization complete.")
+      if (verbose >= 1) message("Initialization complete.")
       return(list(labeled_id = labeled_id, unlabeled_id = unlabeled_id))
     }
   }

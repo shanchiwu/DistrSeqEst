@@ -8,13 +8,25 @@ test_that("inv() returns correct inverse for well-conditioned matrix", {
   expect_equal(A_inv_computed, A_inv_expected)
 })
 
+test_that("inv() applies ridge regularization for mildly ill-conditioned matrix", {
+  A <- diag(c(1, 1e-10))  # rcond ≈ 1e-10
+
+  # Run and expect warning about ridge
+  expect_warning({
+    G <- inv(A)
+    lambda_adaptive <- 1e-4 * mean(diag(A))
+    A_stable <- A + diag(lambda_adaptive, 2)
+    expect_equal(G, solve(A_stable), tolerance = 1e-6)
+  }, regexp = "ridge")
+})
+
 test_that("inv() falls back to ginv() for ill-conditioned matrix", {
   # Make a nearly singular matrix
   A <- matrix(c(1, 1, 1, 1 + 1e-14), nrow = 2)
   expect_warning({
     G <- inv(A)
     expect_equal(G, ginv(A), tolerance = 1e-8)
-  }, regexp = "ill-conditioned")
+  }, regexp = "generalized inverse")
 })
 
 test_that("inv() preserves dimnames", {

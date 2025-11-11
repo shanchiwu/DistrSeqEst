@@ -2,15 +2,21 @@
 % Please edit documentation in R/optimal.R
 \name{optimal}
 \alias{optimal}
-\alias{design_select.D.opt}
+\alias{design_select.D.opt.chol}
+\alias{design_select.D.opt.inv}
 \alias{design_select.A.opt}
+\alias{design_select.uncertain.bin}
 \alias{design_select.random}
 \alias{design_select.default}
 \title{Optimal Design Selection Criteria}
 \usage{
-\method{design_select}{D.opt}(method, X, w, labeled_id, unlabeled_id, ...)
+\method{design_select}{D.opt.chol}(method, X, w, labeled_id, unlabeled_id, lambda = 1e-06, ...)
+
+\method{design_select}{D.opt.inv}(method, X, w, labeled_id, unlabeled_id, lambda = 1e-06, ...)
 
 \method{design_select}{A.opt}(method, X, w, labeled_id, unlabeled_id, ...)
+
+\method{design_select}{uncertain.bin}(method, X, w, labeled_id, unlabeled_id, fit, ...)
 
 \method{design_select}{random}(method, X, w, labeled_id, unlabeled_id, ...)
 
@@ -27,7 +33,11 @@
 
 \item{unlabeled_id}{Integer vector specifying the indices of candidate (unlabeled) observations to evaluate.}
 
+\item{lambda}{A numeric to set regularization avoid singular or ill-condition.}
+
 \item{...}{Additional arguments passed to the specific method function.}
+
+\item{fit}{Previous fitted model.}
 }
 \value{
 An integer indicating the row index (relative to the input \code{X}) of the selected optimal data point.
@@ -45,6 +55,9 @@ This function implements optimal design selection under weighted settings, where
 \strong{A-optimality} minimizes the trace of the inverse of the information matrix:
 \deqn{\text{A-optimality: } \quad \min \operatorname{tr}((\mathbf{X}'\mathbf{W}\mathbf{X})^{-1})}
 
+\strong{Uncertainty Sampling (Binary)} find the predictive probability is closest to 0.5
+\deqn{ \min P(\hat{y}|x)}
+
 Let \eqn{\mathbf{X}_{\text{now}}} be the design matrix for currently labeled observations and \eqn{\mathbf{X}_{\text{new}}} be the matrix for candidate points.
 The weight vector \eqn{\mathbf{w}} is partitioned accordingly into \eqn{\mathbf{w}_{\text{now}}} and \eqn{\mathbf{w}_{\text{new}}}.
 
@@ -53,7 +66,7 @@ The method selects the point that maximizes the determinant of the weighted info
 Using \strong{Sylvester's determinant identity}, the determinant ratio (i.e., the gain from adding \eqn{\mathbf{x}_i}) is computed as:
 \deqn{\frac{\det(\mathbf{A} + w_i \mathbf{x}_i \mathbf{x}_i^\top)}{\det(\mathbf{A})} = 1 + w_i \cdot \mathbf{x}_i^\top \mathbf{A}^{-1} \mathbf{x}_i}
 where \eqn{\mathbf{A} = \mathbf{X}_{\text{now}}^\top \mathbf{W}_{\text{now}} \mathbf{X}_{\text{now}} + \lambda \mathbf{I}} includes a ridge penalty for numerical stability.
-The point maximizing this expression is selected exactly.
+The point maximizing this expression is selected exactly. There are two algorithms to solve D-optimality: Cholesky decomposition and inverse.
 
 \strong{A-optimality}:
 The method selects the point that minimizes the trace of the inverse of the updated weighted information matrix.
@@ -68,6 +81,17 @@ The point with minimal updated trace is selected.
 These formulas avoid recomputing the full matrix inverse for each candidate and ensure exact evaluation under some assumptions.
 
 The A-optimal trace computation is accelerated using C++ via Rcpp.
+
+\strong{Uncertainty Sampling (Binary)}:
+This method selects the unlabeled point for which the model is most uncertain under a binary classification setting.
+Specifically, the predictive probability \eqn{p_i = P(y = 1 \mid \mathbf{x}_i)} is computed for each candidate point.
+Since uncertainty is maximized when \eqn{p_i = 0.5}, we quantify it by the distance from this decision boundary:
+\deqn{U_i = -\left| p_i - 0.5 \right|}
+where a larger \eqn{U_i} indicates greater model uncertainty.
+
+The candidate with the highest uncertainty score \eqn{U_i} — i.e., whose predictive probability is closest to 0.5 —
+is selected for labeling. This approach corresponds to the classical \emph{least confidence} strategy, which is
+equivalent to margin- and entropy-based uncertainty measures in the binary case when selecting a single point.
 }
 \examples{
 \dontrun{
@@ -75,8 +99,8 @@ The A-optimal trace computation is accelerated using C++ via Rcpp.
   w <- rep(1, 100)
   labeled <- sample(1:100, 10)
   unlabeled <- setdiff(1:100, labeled)
-  design_select.D.opt(X, w, labeled, unlabeled)
+  design_select.D.opt.chol(X, w, labeled, unlabeled)
+  design_select.D.opt.inv(X, w, labeled, unlabeled)
   design_select.A.opt(X, w, labeled, unlabeled)
 }
-
 }

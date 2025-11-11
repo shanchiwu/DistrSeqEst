@@ -55,7 +55,6 @@ test_that("get_weight returns correct Binomial working weights", {
   eta <- X %*% beta
   mu <- 1 / (1 + exp(-eta))  # inverse logit
 
-  # expected: weight = mu * (1 - mu)
   expected <- as.vector(mu * (1 - mu))
   w <- as.vector(get_weight(X, beta, binomial()))
 
@@ -88,8 +87,7 @@ test_that("get_weight returns correct Poisson working weights", {
   eta <- X %*% beta
   mu <- exp(eta)  # poisson default link is log
 
-  # expected: weight = mu
-  expected <- as.vector(mu)
+  expected <- as.vector(mu) # expect weight = mu
   w <- as.vector(get_weight(X, beta, poisson()))
 
   expect_equal(w, expected)
@@ -126,4 +124,3 @@ test_that("get_weight returns correct Gamma working weights (log link)", {
 
   expect_equal(w, expected)
 })
-

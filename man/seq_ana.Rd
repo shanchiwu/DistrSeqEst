@@ -18,7 +18,7 @@ seq_ana(
   beta = NULL,
   alpha2 = 0.05,
   alternative = c("two.sided", "beta.protect"),
-  adaptive = c("random", "D.opt", "A.opt"),
+  adaptive = c("random", "D.opt.chol", "D.opt.inv", "A.opt", "uncertain.bin"),
   verbose = 1,
   max_try = 1000
 )
@@ -54,11 +54,13 @@ seq_ana(
 \item{"beta.protect"}{Protective design against a specific alternative effect size (\code{beta}).}
 }}
 
-\item{adaptive}{A \code{character} string specifying the sampling strategy. Must be one of:
+\item{adaptive}{A \code{character} string specifying the sampling strategy. The following are some default usage:
 \describe{
 \item{"random"}{Uniform random sampling.}
-\item{"D.opt"}{D-optimal design based on Fisher information.}
+\item{"D.opt.chol"}{D-optimal design based on Fisher information. (Solve inverse by Cholesky)}
+\item{"D.opt.inv"}{D-optimal design based on Fisher information. (Directly solve inverse)}
 \item{"A.opt"}{A-optimal design minimizing trace of the inverse information matrix.}
+\item{"uncertain.bin"}{Uncertainity sampling under a Bernoulli model.}
 }}
 
 \item{verbose}{Controls the level of console output.
@@ -97,31 +99,30 @@ This function is particularly useful when data are abundant but computational or
 labeling cost constraints make full estimation impractical.
 }
 \examples{
-b = c(-2,2,1,1,0)
+b <- c(-2, 2, 1, 1, 0)
 
-gen_data = function(N, b){
-  p = length(b)
-  X = cbind(rep(1,N), matrix(rnorm(n=N*(p-1)), ncol = p-1))
-  Xb = X \%*\% b
+gen_data <- function(N, b) {
+  p <- length(b)
+  X <- cbind(rep(1, N), matrix(rnorm(n = N * (p - 1)), ncol = p - 1))
+  Xb <- X \%*\% b
 
-  p1 = 1 / (1+exp(-Xb))
-  Y = rbinom(n=N, size=1, prob=p1)
+  p1 <- 1 / (1 + exp(-Xb))
+  Y <- rbinom(n = N, size = 1, prob = p1)
 
-  data = data.frame(X,Y)
+  data.frame(X, Y)
 }
 
 set.seed(1)
 
-if(interactive()){
-  df = gen_data(10000,b)
+if (interactive()) {
+  df <- gen_data(10000, b)
 
-  fit = seq_ana(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
-                init_N = 100, model = "glm", d1 = 0.3, alpha = 0.05,
-                family = binomial(),
-                alternative = "two.sided", adaptive = "D.opt",
-                verbose = 3, max_try = 1000)
+  fit <- seq_ana(df, interest = Y ~ X1 + X2 + X3 - 1, nuisance = Y ~ . - 1,
+                 init_N = 100, model = "glm", d1 = 0.3, alpha = 0.05,
+                 family = binomial(),
+                 alternative = "two.sided", adaptive = "D.opt.chol",
+                 verbose = 3, max_try = 1000)
 }
-
 }
 \seealso{
 \code{\link[=distr_seq_ana]{distr_seq_ana()}}

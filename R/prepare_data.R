@@ -1,6 +1,6 @@
 #' @importFrom stats model.frame model.matrix model.response
 
-prepare_data <- function(data, interest, nuisance = NULL, verbose = 0){
+prepare_data <- function(data, interest, nuisance = NULL, verbose = 0) {
   mf_interest <- model.frame(interest, data)
   X_interest <- model.matrix(interest, mf_interest)
   has_intercept_interest <- "(Intercept)" %in% colnames(X_interest)
@@ -18,7 +18,7 @@ prepare_data <- function(data, interest, nuisance = NULL, verbose = 0){
 
     overlap_terms <- intersect(setdiff(colnames(X_interest), "(Intercept)"),
                                setdiff(colnames(X_nuisance), "(Intercept)"))
-    if (verbose >=1 && length(overlap_terms) > 0) {
+    if (verbose >= 1 && length(overlap_terms) > 0) {
       message("Warning: The following terms appear in both interest and nuisance: ",
               paste(overlap_terms, collapse = ", "),
               ". These terms will be removed from the nuisance to avoid duplication.")
@@ -36,7 +36,7 @@ prepare_data <- function(data, interest, nuisance = NULL, verbose = 0){
   interest_term <- colnames(X_interest)
   interest_idx <- match(interest_term, colnames(X))
 
-  if(verbose >= 3){
+  if (verbose >= 3) {
     message(paste0("Data Dimension: ", paste(dim(X), collapse = ", "), "\n",
                    "Interest terms: ", paste(interest_term, collapse = ", "), "\n",
                    "Nuisance terms: ", paste(nuisance_cols, collapse = ", ")))

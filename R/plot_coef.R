@@ -26,13 +26,13 @@
 #'
 #' @export
 
-plot_coef <- function(x, var){
-  if(!var %in% names(x$beta_est)){
+plot_coef <- function(x, var) {
+  if (!var %in% names(x$beta_est)) {
     stop("The specified `var` is not found among the names of `x$beta_est`.")
   }
 
-  M = length(x$fits)
-  coef_list <- lapply(x$fits[1:M], function(fit, var) fit$coef_path[,var], var=var)
+  M <- length(x$fits)
+  coef_list <- lapply(x$fits[1:M], function(fit, var) fit$coef_path[, var], var = var)
 
   max_len <- max(sapply(coef_list, length))
 
@@ -42,7 +42,7 @@ plot_coef <- function(x, var){
   })
 
   matplot(coef_mat, type = "l", lty = 1, col = 1:5,
-          xlab = "Index", ylab = paste(var,"coefficient"),
+          xlab = "Index", ylab = paste(var, "coefficient"),
           main = paste("Coefficient paths for", var, "( Sequence 1 -", M, ")"))
 
   abline(h = x$beta_est[var], col = "gray", lty = 2)

@@ -29,7 +29,7 @@ To define a new selection strategy, users can implement an S3 method following t
 ```{r}
 design_select.mystrategy <- function(method, X, w, labeled_id, unlabeled_id, ...) {
   # Custom logic here
-  return(unlabeled_id[1])  # Example: always select first
+  unlabeled_id[1]  # Example: always select first
 }
 ```
 
@@ -45,7 +45,11 @@ The following demonstrates how to define such a function. The example shown belo
 ```{r}
 # A minimal custom sampling strategy: always pick the first available index
 design_select.min <- function(method, X, w, labeled_id, unlabeled_id, ...) {
-  return(unlabeled_id[1])
+  unlabeled_id[1]
+}
+
+mymin <- function(X, w, labeled_id, unlabeled_id, ...) {
+  unlabeled_id[1]
 }
 ```
 
@@ -60,21 +64,21 @@ More sophisticated strategies can make use of model predictions, uncertainty qua
 
 We simulate synthetic data based on a logistic regression model. The regression coefficients are specified in vector `b`. The covariates are generated from a standard normal distribution, and the binary outcome `Y` is generated according to the logistic model.
 ```{r}
-b = c(-2,2,1,1,0)
+b <- c(-2, 2, 1, 1, 0)
 
-gen_data = function(N, b){
-  p = length(b)
-  X = cbind(rep(1,N), matrix(rnorm(n=N*(p-1)), ncol = p-1))
-  Xb = X %*% b
+gen_data <- function(N, b) {
+  p <- length(b)
+  X <- cbind(rep(1, N), matrix(rnorm(n = N * (p - 1)), ncol = p - 1))
+  Xb <- X %*% b
 
-  p1 = 1 / (1+exp(-Xb))
-  Y = rbinom(n=N, size=1, prob=p1)
+  p1 <- 1 / (1 + exp(-Xb))
+  Y <- rbinom(n = N, size = 1, prob = p1)
 
-  data = data.frame(X,Y)
+  data.frame(X, Y)
 }
 
 set.seed(1)
-df = gen_data(10000,b)
+df <- gen_data(10000, b)
 ```
 
 
@@ -83,11 +87,11 @@ df = gen_data(10000,b)
 We now run the sequential analysis using the `seq_ana` function. The function proceeds to sequentially sample from the data based on the defined selection strategy until the stopping rule is triggered.
 ```{r}
 set.seed(1)
-fit = seq_ana(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
-              init_N = 100, d1 = 0.3, alpha = 0.05,
-              model = "glm", fit_args = list(family = binomial()),
-              alternative = "two.sided", adaptive = "min",
-              verbose = 3, max_try = 1000)
+fit <- seq_ana(df, interest = Y ~ X1 + X2 + X3 - 1, nuisance = Y ~ . - 1,
+               init_N = 100, d1 = 0.3, alpha = 0.05,
+               model = "glm", fit_args = list(family = binomial()),
+               alternative = "two.sided", adaptive = "min",
+               verbose = 3, max_try = 1000)
 summary(fit)
 ```
 
@@ -98,6 +102,20 @@ fit$labeled_id[1:200]
 ```
 
 ## Another example
+
+
+
+```{r}
+set.seed(1)
+fit <- seq_ana(df, interest = Y ~ X1 + X2 + X3 - 1, nuisance = Y ~ . - 1,
+               init_N = 100, d1 = 0.3, alpha = 0.05,
+               model = "glm", fit_args = list(family = binomial()),
+               alternative = "two.sided", adaptive = mymin,
+               verbose = 3, max_try = 1000)
+summary(fit)
+
+fit$labeled_id[1:200]
+```
 
 We define another custom sampling function `design_select.uncertain`, which performs classical uncertainty sampling: it selects the point whose predicted probability is closest to 0.5 — the region of maximum uncertainty under a Bernoulli model.
 
@@ -114,17 +132,17 @@ design_select.uncertain <- function(method, X, w, labeled_id, unlabeled_id, fit)
 
   # Select the most uncertain point
   selected_index <- which.max(uncertainty)
-  return(unlabeled_id[selected_index])
+  unlabeled_id[selected_index]
 }
 ```
 
 ```{r}
 set.seed(1)
-fit = seq_ana(df, interest = Y ~ X1 + X2 + X3 -1, nuisance = Y ~ . -1,
-              init_N = 100, d1 = 0.3, alpha = 0.05,
-              model = "glm", fit_args = list(family = binomial()),
-              alternative = "two.sided", adaptive = "uncertain",
-              verbose = 3, max_try = 1000)
+fit <- seq_ana(df, interest = Y ~ X1 + X2 + X3 - 1, nuisance = Y ~ . - 1,
+               init_N = 100, d1 = 0.3, alpha = 0.05,
+               model = "glm", fit_args = list(family = binomial()),
+               alternative = "two.sided", adaptive = "uncertain",
+               verbose = 3, max_try = 1000)
 summary(fit)
 ```
 

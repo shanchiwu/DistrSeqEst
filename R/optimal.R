@@ -1,3 +1,4 @@
+#' @importFrom stats binomial
 #' @title Optimal Design Selection Criteria
 #'
 #' @description
@@ -9,6 +10,8 @@
 #' @param w A numeric vector of weights corresponding to each observation in \code{X}.
 #' @param labeled_id Integer vector specifying the indices of already selected (labeled) observations.
 #' @param unlabeled_id Integer vector specifying the indices of candidate (unlabeled) observations to evaluate.
+#' @param lambda A numeric to set regularization avoid singular or ill-condition.
+#' @param fit Previous fitted model.
 #' @param ... Additional arguments passed to the specific method function.
 #'
 #' @details
@@ -20,6 +23,9 @@
 #' \strong{A-optimality} minimizes the trace of the inverse of the information matrix:
 #' \deqn{\text{A-optimality: } \quad \min \operatorname{tr}((\mathbf{X}'\mathbf{W}\mathbf{X})^{-1})}
 #'
+#' \strong{Uncertainty Sampling (Binary)} find the predictive probability is closest to 0.5
+#' \deqn{ \min P(\hat{y}|x)}
+#'
 #' Let \eqn{\mathbf{X}_{\text{now}}} be the design matrix for currently labeled observations and \eqn{\mathbf{X}_{\text{new}}} be the matrix for candidate points.
 #' The weight vector \eqn{\mathbf{w}} is partitioned accordingly into \eqn{\mathbf{w}_{\text{now}}} and \eqn{\mathbf{w}_{\text{new}}}.
 #'
@@ -28,7 +34,7 @@
 #' Using **Sylvester's determinant identity**, the determinant ratio (i.e., the gain from adding \eqn{\mathbf{x}_i}) is computed as:
 #' \deqn{\frac{\det(\mathbf{A} + w_i \mathbf{x}_i \mathbf{x}_i^\top)}{\det(\mathbf{A})} = 1 + w_i \cdot \mathbf{x}_i^\top \mathbf{A}^{-1} \mathbf{x}_i}
 #' where \eqn{\mathbf{A} = \mathbf{X}_{\text{now}}^\top \mathbf{W}_{\text{now}} \mathbf{X}_{\text{now}} + \lambda \mathbf{I}} includes a ridge penalty for numerical stability.
-#' The point maximizing this expression is selected exactly.
+#' The point maximizing this expression is selected exactly. There are two algorithms to solve D-optimality: Cholesky decomposition and inverse.
 #'
 #' \strong{A-optimality}:
 #' The method selects the point that minimizes the trace of the inverse of the updated weighted information matrix.
@@ -44,6 +50,19 @@
 #'
 #' The A-optimal trace computation is accelerated using C++ via Rcpp.
 #'
+#' \strong{Uncertainty Sampling (Binary)}:
+#' This method selects the unlabeled point for which the model is most uncertain under a binary classification setting.
+#' Specifically, the predictive probability \eqn{p_i = P(y = 1 \mid \mathbf{x}_i)} is computed for each candidate point.
+#' Since uncertainty is maximized when \eqn{p_i = 0.5}, we quantify it by the distance from this decision boundary:
+#' \deqn{U_i = -\left| p_i - 0.5 \right|}
+#' where a larger \eqn{U_i} indicates greater model uncertainty.
+#'
+#' The candidate with the highest uncertainty score \eqn{U_i} — i.e., whose predictive probability is closest to 0.5 —
+#' is selected for labeling. This approach corresponds to the classical \emph{least confidence} strategy, which is
+#' equivalent to margin- and entropy-based uncertainty measures in the binary case when selecting a single point.
+#'
+#'
+#'
 #'
 #' @return An integer indicating the row index (relative to the input \code{X}) of the selected optimal data point.
 #'
@@ -54,14 +73,39 @@
 #'   w <- rep(1, 100)
 #'   labeled <- sample(1:100, 10)
 #'   unlabeled <- setdiff(1:100, labeled)
-#'   design_select.D.opt(X, w, labeled, unlabeled)
+#'   design_select.D.opt.chol(X, w, labeled, unlabeled)
+#'   design_select.D.opt.inv(X, w, labeled, unlabeled)
 #'   design_select.A.opt(X, w, labeled, unlabeled)
 #' }
-#'
+
+
 #' @name optimal
 #' @rdname optimal
 #' @export
-design_select.D.opt <- function(method, X, w, labeled_id, unlabeled_id, ...){
+design_select.D.opt.chol <- function(method, X, w, labeled_id, unlabeled_id, lambda = 1e-6, ...) {
+  X_now <- X[labeled_id, , drop = FALSE]
+  X_new <- X[unlabeled_id, , drop = FALSE]
+
+  w_now <- w[labeled_id]
+  w_new <- w[unlabeled_id]
+
+  # Avoid explicit inverse; use Cholesky and two triangular solves.
+  A <- crossprod(X_now * sqrt(w_now)) + diag(lambda, ncol(X_now))
+  R <- chol(A)                        # A = R'R, R is upper triangular
+  # Z <- forwardsolve(t(R), t(X_new))   # solve R' Z = t(X_new)
+  # Y <- backsolve(R, Z)                # solve R  Y = Z  => Y = A^{-1} t(X_new)
+  # quadform <- colSums(t(X_new) * Y)   # Quadratic forms x_i' A^{-1} x_i without forming A^{-1}
+  Y <- backsolve(R, t(X_new))   # solve R Y = t(X_new)
+  quadform <- colSums(Y^2)      # each col j gives x_j' A^{-1} x_j
+
+  score <- quadform * w_new
+
+  return(unlabeled_id[which.max(score)])
+}
+
+#' @rdname optimal
+#' @export
+design_select.D.opt.inv <- function(method, X, w, labeled_id, unlabeled_id, lambda = 1e-6, ...) {
   X_now <- X[labeled_id, , drop = FALSE]
   X_new <- X[unlabeled_id, , drop = FALSE]
 
@@ -69,17 +113,15 @@ design_select.D.opt <- function(method, X, w, labeled_id, unlabeled_id, ...){
   w_new <- w[unlabeled_id]
 
   # row-wise quadratic form, efficient computation of x'Ax for each row x, <Ax,x>
-  # Note: Maybe Cholesky decomposition would be faster and stable?
-  A = crossprod(X_now, w_now * X_now) + diag(1e-6, ncol(X_now)) # add regularization avoid singular or ill-condition
-  A_inv = inv(A) # pxn * nxn * nxp
-  A_x = X_new %*% A_inv # nxp * pxp
-  quadform = rowSums(A_x * X_new) # nxp * nxp, Hadamard (element-wise) multiplication
+  A <- crossprod(X_now, w_now * X_now) + diag(lambda, ncol(X_now)) # add regularization avoid singular or ill-condition
+  A_inv <- inv(A) # pxn * nxn * nxp
+  A_x <- X_new %*% A_inv # nxp * pxp
+  quadform <- rowSums(A_x * X_new) # nxp * nxp, Hadamard (element-wise) multiplication
 
-  score = quadform * w_new
+  score <- quadform * w_new
 
   return(unlabeled_id[which.max(score)])
 }
-
 
 #' @rdname optimal
 #' @export
@@ -93,9 +135,23 @@ design_select.A.opt <- function(method, X, w, labeled_id, unlabeled_id, ...) {
   trs <- a_opt_trace(X_now, X_new, w_now, w_new) # implement in C++
 
   best_idx <- which.min(trs)
-  return(unlabeled_id[best_idx])
+  unlabeled_id[best_idx]
 }
 
+#' @rdname optimal
+#' @export
+design_select.uncertain.bin <- function(method, X, w, labeled_id, unlabeled_id, fit, ...) {
+  # Predict probabilities for unlabeled data
+  eta <- X[unlabeled_id, , drop = FALSE] %*% fit$coefficients
+  prob <- binomial()$linkinv(eta)  # same as plogis(eta)
+
+  # Compute uncertainty as distance from 0.5 (maximum uncertainty)
+  uncertainty <- -abs(prob - 0.5)  # Negative for descending sort
+
+  # Select the most uncertain point
+  selected_index <- which.max(uncertainty)
+  unlabeled_id[selected_index]
+}
 
 #' @rdname optimal
 #' @export

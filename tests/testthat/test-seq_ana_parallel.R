@@ -8,19 +8,13 @@ test_that("seq_ana_parallel runs and returns seq.fit", {
   )
 
   res <- seq_ana_parallel(
-    data = df,
-    interest = y ~ x1 + x2 - 1,
-    nuisance = ~ x3,
+    data = df, interest = y ~ x1 + x2 - 1, nuisance = ~ x3,
     init_N = 20,
     model = "glm",
     fit_args = list(family = binomial()),
-    d1 = 0.3,
-    d2 = 0.05,
-    alternative = "two.sided",
-    adaptive = "random",
-    verbose = 3,
-    backend = "none",
-    cores = 1
+    d1 = 0.3, d2 = 0.05,
+    alternative = "two.sided", adaptive = "random",
+    verbose = 3, backend = "none", cores = 1
   )
 
   expect_type(res, "list")

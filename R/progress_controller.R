@@ -7,14 +7,14 @@ progress_controller <- function(type = c("init", "tick", "done"),
 
   if (type == "init") {
     pb_format <- switch(as.character(verbose),
-                        "0" = NULL,  # silent
-                        "1" = "(:current/:total) [Elapsed: :elapsedfull] ", # default
-                        "2" = "(:current/:total) [Elapsed: :elapsedfull Last update: :tps_end] - sample id: :idx - :tps secs/sample ",
-                        "3" = "(:current/:total) [Elapsed: :elapsedfull Last update: :tps_end] - sample id: :idx - :tps secs/sample - stop rule1: :st1_l < :st1_r ",
-                        NULL
+      "0" = NULL,  # silent
+      "1" = "(:current/:total) [Elapsed: :elapsedfull] ", # default
+      "2" = "(:current/:total) [Elapsed: :elapsedfull Last update: :tps_end] - sample id: :idx - :tps secs/sample ",
+      "3" = "(:current/:total) [Elapsed: :elapsedfull Last update: :tps_end] - sample id: :idx - :tps secs/sample - stop rule1: :st1_l < :st1_r ",
+      NULL
     )
 
-    if(verbose >=3 && !is.null(d2)){
+    if (verbose >= 3 && !is.null(d2)) {
       pb_format <- paste0(pb_format, "- stop rule2: :auc.var < :st2 ")
     }
 

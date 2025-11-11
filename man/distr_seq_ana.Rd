@@ -18,7 +18,7 @@ distr_seq_ana(
   beta = NULL,
   alpha2 = 0.05,
   alternative = c("two.sided", "beta.protect"),
-  adaptive = c("random", "D.opt", "A.opt"),
+  adaptive = c("random", "D.opt.chol", "D.opt.inv", "A.opt", "uncertain.bin"),
   verbose = 1,
   max_try = 1000,
   cores = 1,
@@ -59,8 +59,10 @@ distr_seq_ana(
 \item{adaptive}{A \code{character} string specifying the sampling strategy. Must be one of:
 \describe{
 \item{"random"}{Uniform random sampling.}
-\item{"D.opt"}{D-optimal design based on Fisher information.}
+\item{"D.opt.chol"}{D-optimal design based on Fisher information. (Solve inverse by Cholesky)}
+\item{"D.opt.inv"}{D-optimal design based on Fisher information. (Directly solve inverse)}
 \item{"A.opt"}{A-optimal design minimizing trace of the inverse information matrix.}
+\item{"uncertain.bin"}{Uncertainity sampling under a Bernoulli model.}
 }}
 
 \item{verbose}{Controls the level of console output.
@@ -109,50 +111,49 @@ The function supports both \pkg{doParallel} and \pkg{doMC} (Unix-only) backends.
 If \code{backend = "none"}, computation defaults to single-core execution using \code{foreach::registerDoSEQ()}.
 }
 \examples{
-b1 = c(-2,2,1,1,0)
-b2 = c(-2,2,1,1,0.5)
-b3 = c(-2,2,1,1,0.5,0)
-b4 = c(-1.5,2,1,1,0)
-b5 = c(-2.5,2,1,1,1)
+b1 <- c(-2, 2, 1, 1, 0)
+b2 <- c(-2, 2, 1, 1, 0.5)
+b3 <- c(-2, 2, 1, 1, 0.5, 0)
+b4 <- c(-1.5, 2, 1, 1, 0)
+b5 <- c(-2.5, 2, 1, 1, 1)
 
-gen_data = function(N, b){
-  p = length(b)
-  X = cbind(rep(1,N), matrix(rnorm(n=N*(p-1)), ncol = p-1))
-  Xb = X \%*\% b
+gen_data <- function(N, b) {
+  p <- length(b)
+  X <- cbind(rep(1, N), matrix(rnorm(n = N * (p - 1)), ncol = p - 1))
+  Xb <- X \%*\% b
 
-  p1 = 1 / (1+exp(-Xb))
-  Y = rbinom(n=N, size=1, prob=p1)
+  p1 <- 1 / (1 + exp(-Xb))
+  Y <- rbinom(n = N, size = 1, prob = p1)
 
-  data = data.frame(X,Y)
+  data.frame(X, Y)
 }
 
 set.seed(1)
 
-if(interactive()){
-  df1 = gen_data(10000,b1)
-  df2 = gen_data(10000,b2)
-  df3 = gen_data(10000,b3)
-  df4 = gen_data(10000,b4)
-  df5 = gen_data(10000,b5)
-  df_list = gen_data_list(df1,df2,df3,df4,df5)
+if (interactive()) {
+  df1 <- gen_data(10000, b1)
+  df2 <- gen_data(10000, b2)
+  df3 <- gen_data(10000, b3)
+  df4 <- gen_data(10000, b4)
+  df5 <- gen_data(10000, b5)
+  df_list <- gen_data_list(df1, df2, df3, df4, df5)
 
 
-  interest = Y ~ X1 + X2 + X3 -1
+  interest <- Y ~ X1 + X2 + X3 - 1
   # using . in RHS should give Y in LHS
-  nuisance = list(Y ~ . -1,                     # All other param.
-                  NULL,                         # No nuisance
-                  ~ X4 + X5 + X6 -1,            # Different num. of param.
-                  ~ I(X2^2) + X4:X5 -1,         # I(), interaction
-                  ~ log(X3^2) + poly(X4,2) -1)  # log(), poly()
-  gamma = rep(1/5,5) # weight of sequence
+  nuisance <- list(Y ~ . - 1,                     # All other param.
+                   NULL,                         # No nuisance
+                   ~ X4 + X5 + X6 - 1,            # Different num. of param.
+                   ~ I(X2^2) + X4:X5 - 1,         # I(), interaction
+                   ~ log(X3^2) + poly(X4, 2) - 1)  # log(), poly()
+  gamma <- rep(1 / 5, 5) # weight of sequence
 
-  fit_all = distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
-                          init_N = 100, gamma = gamma, d1 = 0.3, alpha = 0.05,
-                          model = "glm", fit_args = list(family = binomial()),
-                          alternative = "two.sided", adaptive = "A.opt",
-                          verbose = 3, max_try = 1000)
+  fit_all <- distr_seq_ana(df_list, interest = interest, nuisance = nuisance,
+                           init_N = 100, gamma = gamma, d1 = 0.3, alpha = 0.05,
+                           model = "glm", fit_args = list(family = binomial()),
+                           alternative = "two.sided", adaptive = "A.opt",
+                           verbose = 3, max_try = 1000)
 }
-
 }
 \seealso{
 \code{\link[=seq_ana]{seq_ana()}}

@@ -61,11 +61,11 @@
 #'
 #' These rules are derived to ensure asymptotic validity (consistency and efficiency) of the resulting estimators under distributed, adaptive sequential procedures. See Chen et al. (2024, *Canadian Journal of Statistics*) and Wang & Chang (2017, *Biometrika*) for theoretical guarantees.
 #'
-#'
 #' @references
-#' Chen, Z., Wang, Z., & Chang, Y.-C. I. (2024). Distributed sequential estimation procedures. *Canadian Journal of Statistics*, 52(1), 271–290. https://doi.org/10.1002/cjs.11762
 #'
-#' Wang, Z., & Chang, Y.-C. I. (2017). Integration of distributed sequential procedures for massive-data analysis. *Biometrika*, 103(1), 1–21. https://doi.org/10.1093/biomet/asx028
+#' \insertRef{chen2020sequential}{DistrSeqEst}
+#'
+#' \insertRef{chen2024distributed}{DistrSeqEst}
 #'
 #' @examples
 #' # Evaluate stopping rule for two-sided inference
@@ -78,45 +78,45 @@
 check_stopped <- function(model, k, N0, interest_term, d1, d2 = NULL, theta, Sigma,
                           s, gamma = 1, alpha, beta = NULL, auc_var = NULL,
                           alpha2 = 0.05,
-                          alternative = c("two.sided", "beta.protect")){
+                          alternative = c("two.sided", "beta.protect")) {
   p0 <- length(interest_term)
   mu <- NULL
 
-  if(alternative == "two.sided"){
+  if (alternative == "two.sided") {
     Sigma_inv <- inv(Sigma)
-    mu <- lam_max(k * Sigma_inv[interest_term,interest_term])
+    mu <- lam_max(k * Sigma_inv[interest_term, interest_term])
 
     a_tilde2 <- gamma * qchisq(1 - alpha, df = p0)
 
-    st1 <- switch (model,
-                   "lm"  = d1^2 * k / a_tilde2 / (s^2 + 1/k),
-                   "glm" = d1^2 * k / a_tilde2,
-                   stop("Unknown model")
+    st1 <- switch(model,
+      "lm"  = d1^2 * k / a_tilde2 / (s^2 + 1 / k),
+      "glm" = d1^2 * k / a_tilde2,
+      stop("Unknown model")
     )
     cond1 <- mu <= st1
   }
 
-  if(alternative == "beta.protect"){
+  if (alternative == "beta.protect") {
     theta_hat <- sqrt(c(crossprod(theta, Sigma %*% theta))) # compute ||theta_hat*||
-    tau <- 1 / (gamma*d1*(1e-7 + theta_hat))
-    pivot <- qnorm((1-alpha)^(1/p0)) + qnorm(1-beta^(1/p0))
+    tau <- 1 / (gamma * d1 * (1e-7 + theta_hat))
+    pivot <- qnorm((1 - alpha)^(1 / p0)) + qnorm(1 - beta^(1 / p0))
 
-    st1 <- switch (model,
-                   "lm"  = N0 + (pivot*tau)^2,
-                   "glm" = (pivot*tau)^2,
-                   stop("Unknown model")
+    st1 <- switch(model,
+      "lm"  = N0 + (pivot * tau)^2,
+      "glm" = (pivot * tau)^2,
+      stop("Unknown model")
     )
     cond1 <- k >= st1
   }
   is.stop <- cond1
 
   st2 <- NULL
-  if(!is.null(d2)){
-    st2 <- ( d2/qnorm(1-alpha2/2) )^2
+  if (!is.null(d2)) {
+    st2 <- (d2 / qnorm(1 - alpha2 / 2))^2
     cond2 <- auc_var <= st2
 
     is.stop <- cond1 && cond2
   }
 
-  out <- list(is.stop = is.stop, mu = mu, st1 = st1, st2 = st2)
+  list(is.stop = is.stop, mu = mu, st1 = st1, st2 = st2)
 }

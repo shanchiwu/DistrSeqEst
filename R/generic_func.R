@@ -64,7 +64,7 @@ summary.seq.fit <- function(object, ...) {
     time = object$time
   )
   class(out) <- "summary.seq.fit"
-  return(out)
+  out
 }
 
 #' @rdname summary.seq.fit
@@ -80,7 +80,7 @@ print.summary.seq.fit <- function(x, ...) {
   cat("Coefficients:\n")
   print(round(x$coef_est, 4))
   cat("\nVariance-Covariance Matrix:\n")
-  print(round(solve(x$Sigma),4))
+  print(round(solve(x$Sigma), 4))
   cat("\nStopping (mu)  :", round(x$mu, 4), "\n")
   cat("Time Taken     :", format(x$time), "\n")
   if (!is.null(x$auc)) {
@@ -114,7 +114,7 @@ summary.distr.seq.fit <- function(object, ...) {
     time_total = object$time_total
   )
   class(out) <- "summary.distr.seq.fit"
-  return(out)
+  out
 }
 
 #' @rdname summary.distr.seq.fit
@@ -131,7 +131,7 @@ print.summary.distr.seq.fit <- function(x, ...) {
   cat("Coefficients:\n")
   print(round(x$beta_est, 4))
   cat("\nVariance-Covariance Matrix:\n")
-  print(round(solve(x$Sigma_est),4))
+  print(round(solve(x$Sigma_est), 4))
   cat("\nTotal Time          :", format(x$time_total), "\n")
   if (!is.null(x$auc)) {
     cat("Overall AUC         :", round(x$auc, 4), "\n")
@@ -149,7 +149,6 @@ design_select_dispatch <- function(X, w, labeled_id, unlabeled_id, method = "def
     stop("Invalid method type. Must be character or function.")
   }
 }
-
 
 design_select <- function(method = "default", X, w, labeled_id, unlabeled_id, ...) {
   UseMethod("design_select", method)

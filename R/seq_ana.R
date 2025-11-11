@@ -30,11 +30,13 @@
 #'     \item{"two.sided"}{Symmetric hypothesis testing.}
 #'     \item{"beta.protect"}{Protective design against a specific alternative effect size (\code{beta}).}
 #'   }
-#' @param adaptive A \code{character} string specifying the sampling strategy. Must be one of:
+#' @param adaptive A \code{character} string specifying the sampling strategy. The following are some default usage:
 #'   \describe{
 #'     \item{"random"}{Uniform random sampling.}
-#'     \item{"D.opt"}{D-optimal design based on Fisher information.}
+#'     \item{"D.opt.chol"}{D-optimal design based on Fisher information. (Solve inverse by Cholesky)}
+#'     \item{"D.opt.inv"}{D-optimal design based on Fisher information. (Directly solve inverse)}
 #'     \item{"A.opt"}{A-optimal design minimizing trace of the inverse information matrix.}
+#'     \item{"uncertain.bin"}{Uncertainity sampling under a Bernoulli model.}
 #'   }
 #' @param verbose Controls the level of console output.
 #'   \describe{
@@ -66,35 +68,33 @@
 #'
 #' @export
 
-seq_ana = function(data,
-                   interest,
-                   nuisance = NULL,
-                   init_N,
-                   model = c("lm","glm"),
-                   fit_args = list(),
-                   gamma = 1, # weight of seq.
-                   d1, # precision of theta
-                   d2 = NULL, # precision of AUC
-                   alpha = 0.05,
-                   beta = NULL,
-                   alpha2 = 0.05,
-                   alternative = c("two.sided", "beta.protect"),
-                   adaptive = c('random', 'D.opt', 'A.opt'),
-                   verbose = 1, max_try = 1000){
+seq_ana <- function(data,
+                    interest,
+                    nuisance = NULL,
+                    init_N,
+                    model = c("lm", "glm"),
+                    fit_args = list(),
+                    gamma = 1, # weight of seq.
+                    d1, # precision of theta
+                    d2 = NULL, # precision of AUC
+                    alpha = 0.05,
+                    beta = NULL,
+                    alpha2 = 0.05,
+                    alternative = c("two.sided", "beta.protect"),
+                    adaptive = c("random", "D.opt.chol", "D.opt.inv", "A.opt", "uncertain.bin"),
+                    verbose = 1, max_try = 1000) {
   t_start <- Sys.time()
 
-  # Removed match.arg(): now design_select() will raise error if method is unknown.
-  # adaptive <- match.arg(adaptive)
   alternative <- match.arg(alternative)
 
-  if(alternative == "beta.protect" && is.null(beta)){
+  if (alternative == "beta.protect" && is.null(beta)) {
     stop("`beta` should be provided if `alternative` is 'beta.protect'.")
   }
 
   # Create progress bar if applicable
   pb <- progress_controller(type = "init", verbose = verbose, total = nrow(data), d2 = d2)
   if (!is.null(pb)) {
-    replicate(init_N-1, progress_controller(type = "tick", pb_env = pb)) # tick initial N sample
+    replicate(init_N - 1, progress_controller(type = "tick", pb_env = pb)) # tick initial N sample
   }
 
   # Create data.matrix X, response y, interest params. index
@@ -112,15 +112,15 @@ seq_ana = function(data,
   coef_path <- list()
 
   best <- NULL
-  repeat{
+  repeat {
     Nj <- length(labeled_id)
-    X_fit <- X[labeled_id,]
+    X_fit <- X[labeled_id, ]
     y_fit <- y[labeled_id]
     fit_input <- c(list(x = X_fit, y = y_fit), fit_args)
     fit <- switch(model,
-                  "lm"  = do.call(lm.fit, fit_input),
-                  "glm" = do.call(glm.fit, fit_input)
-                  )
+      "lm"  = do.call(lm.fit, fit_input),
+      "glm" = do.call(glm.fit, fit_input)
+    )
 
     # Calculate weight and Sigma matrix
     beta_est <- coef(fit)
@@ -132,8 +132,8 @@ seq_ana = function(data,
     # Calculate AUC for logistic regression
     auc_fit <- NULL
     auc_var <- NULL
-    if(!is.null(d2)){
-      auc_fit <- pROC::roc(y_fit, fit$fitted.values, quiet=T)
+    if (!is.null(d2)) {
+      auc_fit <- pROC::roc(y_fit, fit$fitted.values, quiet = TRUE)
       auc_hat <- pROC::auc(auc_fit)
       auc_var <- pROC::var(auc_fit)
     }
@@ -147,11 +147,11 @@ seq_ana = function(data,
     tps <- as.numeric(tps_end - tps_start, units = "secs") / (Nj - init_N + 1)
 
     # Update progress bar
-    if(alternative == "beta.protect"){
+    if (alternative == "beta.protect") {
       st1_l <- sprintf("%.4f", stopped$st1)
       st1_r <- Nj
     }
-    if(alternative == "two.sided"){
+    if (alternative == "two.sided") {
       st1_l <- sprintf("%.4f", stopped$mu)
       st1_r <- sprintf("%.4f", stopped$st1)
     }
@@ -188,4 +188,3 @@ seq_ana = function(data,
 
   return(out)
 }
-

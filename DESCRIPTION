@@ -1,18 +1,12 @@
 Package: DistrSeqEst
 Title: Distributed Sequential Estimation Methods for Large-Scale Data
-Version: 0.3.0
+Version: 0.4.0
 Authors@R: c(
   person("Shan-Chi", "Wu", email = "594537@gmail.com", role = c("aut", "cre", "cph"),
          comment = c(ORCID = "0009-0008-6760-4999")),
   person("Yuan-Chin Ivan", "Chang", role = "aut")
   )
-Description: 
-    Provides tools to conduct and integrate multiple adaptive sequential estimation procedures 
-    across distributed or parallel computing environments. The methodology is designed for 
-    large-scale data applications, combining confidence set estimation, beta-protection inference, 
-    and active learning principles. The implemented algorithms are based on the frameworks 
-    proposed by Chen et al. (2024, Canadian Journal of Statistics) and Wang & Chang (2017, 
-    Biometrika). For theoretical background, see <doi:10.1002/cjs.11762> and <doi:10.1093/biomet/asx028>.
+Description: Provides tools to conduct and integrate multiple adaptive sequential estimation procedures across distributed or parallel computing environments. The methodology is designed for large-scale data applications, combining confidence set estimation, beta-protection inference, and active learning principles. The implemented algorithms are based on the frameworks proposed by Chen et al. (2024, Canadian Journal of Statistics) and Chen, Wang & Chang (2020, Biometrics). For theoretical background, see <https://doi.org/10.1002/cjs.11762> and <https://doi.org/10.1111/biom.13160>.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -20,9 +14,10 @@ RoxygenNote: 7.3.2
 Depends: 
     R (>= 4.0.0)
 Imports:
-    stats, MASS, progress, pROC, Rcpp, foreach, doParallel, doRNG
+    stats, MASS, progress, pROC, Rcpp, foreach, doParallel, doRNG, Rdpack
 Suggests: 
     doMC, knitr, rmarkdown, testthat (>= 3.0.0)
+RdMacros: Rdpack
 URL: https://github.com/shanchiwu/DistrSeqEst
 BugReports: https://github.com/shanchiwu/DistrSeqEst/issues
 VignetteBuilder: knitr
